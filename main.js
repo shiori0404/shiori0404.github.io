@@ -2956,7 +2956,7 @@ function refreshAnkoDimsUI() {
 (function () {
 
     /* ---- あんこスキル関連 ---- */
-    skillCosts = {
+    const skillCosts = {
         s1: 0, s2_1: 1, s2_2: 1,
         s3_1: 2, s3_2: 2,
         s4: 3,
