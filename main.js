@@ -1,11 +1,104 @@
+// ===== imports =====
+
+/* ---- constants ---- */
+import { Decimal, D } from "./src/constants/numbers.js";
+
+// 1.79e308
+import {
+    INF
+} from "./src/constants/numbers.js";
+
+import { UI_LAYOUT } from "./src/constants/uiLayout.js";
+
+import { SAVE_KEY } from "./src/constants/save.js";
+
+// fps
+import { TARGET_FPS, FRAME_INTERVAL_MS } from "./src/constants/timing.js";
+
+// 自動化
+import { createAutomationLogic } from "./src/systems/automationSystem.js";
+
+// アンロックに必要なずんだ量
+import {
+    ASC_UNLOCK,
+    PRESTIGE_UNLOCK,
+    BOOST_UNLOCK,
+    EDA_UNLOCK,
+    AUTO_THRESH_BY_ZUNDA
+} from "./src/constants/unlockZundaAmount.js";
+
+
+// キャラクター表示
+
+// セリフの表示時間 = 60秒
+import { ZUNDA_AUTO_DELAY_MS } from "./src/constants/zundaTalk.js";
+
+import { ZUNDA_SPRITE } from "./src/constants/zundaSprites.js";
+
+import {
+    ZUNDA_LINES_NORMAL,
+    ZUNDA_LINES_BY_PROGRESS
+} from "./src/constants/zundaLines.js";
+
+import { createBubble } from "./src/ui/bubble.js";
+
+
+// UI
+import { initTabs } from "./src/ui/tabs.js";
+import { initAutomationUI } from "./src/ui/automationUI.js";
+import { createAutomationCardsUI } from "./src/ui/automationCards.js";
+import { initAskillTree } from "./src/ui/askillTree.js";
+import { initAnkoChallengeUI } from "./src/ui/ankoChallengesUI.js";
+let onAnkoChalUIUpdate = null;
+import { createCostsUI } from "./src/ui/costsUI.js";
+import { createVisibilityUI } from "./src/ui/visibilityUI.js";
+import { createPrestigeUI } from "./src/ui/prestigeUI.js";
+import { createBoostAscUI } from "./src/ui/boostAscUI.js";
+import { createHUD } from "./src/ui/hud.js";
+import { createZundaDimsUI } from "./src/ui/zundaDimsUI.js";
+import { createMiscBars } from "./src/ui/miscBars.js";
+import { createUpdateUI } from "./src/ui/updateUI.js";
+
+
+// ずんだディメンション
+import { calcTickMults } from "./src/systems/mults.js";
+import { tickZunda } from "./src/systems/zundaProduction.js";
+
+// プレステージ
+import { createPrestigeSystem, PRESTIGE_REF, PRESTIGE_P, PRESTIGE_S } from "./src/systems/prestigeSystem.js";
+
+// あんこディメンション
+import {
+    calcAdCost,
+    calcAdTotalCost,
+    canAffordAd,
+    maxAffordableAd,
+} from "./src/content/ankoDims.js";
+
+import { tickAnko } from "./src/systems/ankoProduction.js";
+
+// あんこスキル
+import {
+    ASKILL_COSTS,
+    ASKILL_PREREQ,
+    ASKILL_POS,
+    ASKILL_EDGES,
+    getASkillLabel,
+    getASkillDesc
+} from "./src/constants/ankoSkills.js";
+
+// あんこチャレンジ
+import { ACHAL_DEFS } from "./src/constants/achallengeDefs.js";
+import { createAnkoChallengeLogic } from "./src/systems/ankoChallenge.js";
+
+
 /***** 0. BANNER ************************************************************/
 /* 依存順: Utils → State → Effects → Math → Actions → UI → Events → Loop → Boot */
 
 
 /***** 1. UTILS *************************************************************/
 
-/* ---- 閾値など ---- */
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+
 
 // Decimal/number/BreakInfinity を問わず "数値" に落とす
 function toNum(x) {
@@ -15,7 +108,7 @@ function toNum(x) {
 
 // 表示フォーマッタ（Decimal対応）
 function fmtDec(d) {
-    if (!(d instanceof Decimal)) d = new Decimal(d || 0);
+    if (!(d instanceof Decimal)) d = D(d || 0);
 
     // ゼロ
     if (d.eq(0)) return '0';
@@ -47,7 +140,7 @@ function fmtDec(d) {
 
 // 表示フォーマッタ（Decimal対応・小数点以下2桁）
 function fmtDec2(d) {
-    if (!(d instanceof Decimal)) d = new Decimal(d || 0);
+    if (!(d instanceof Decimal)) d = D(d || 0);
 
     // ゼロ
     if (d.eq(0)) return '0';
@@ -91,21 +184,11 @@ const nowMs = () => performance?.now?.() || Date.now();
 // ずんだディメンション
 const tiers = Array.from({ length: 9 }, () => ({}));
 
-// アンロックに必要なずんだ量
-const ASC_UNLOCK = D('1e16');
-const PRESTIGE_UNLOCK = D('1e40');
-const BOOST_UNLOCK = D('1e10');
-
-const AUTO_THRESH = {
-    zd: ['1e35', '1e45', '1e55', '1e65', '1e75', '1e85', '1e95', '1e105'].map(D),
-    boost: D('1e115')
-};
-
 /* ---- あんこチャレンジ関連 ---- */
 // チャレンジに入ってから経過した時間
 const ankoChalElapsedSec = () => ((nowMs() - (state.anko.chalStartMs || 0)) / 1000) | 0;
-const isAnkoChal = k => state.anko.activeChal === k || (typeof k === "string" && CHAL_DEFS[state.anko.activeChal]?.key === k);
-const isChal = k => state.anko.activeChal === k || (typeof k === "string" && CHAL_DEFS[state.anko.activeChal]?.key === k);
+const isAnkoChal = k => state.anko.activeChal === k || (typeof k === "string" && ACHAL_DEFS[state.anko.activeChal]?.key === k);
+const isChal = k => state.anko.activeChal === k || (typeof k === "string" && ACHAL_DEFS[state.anko.activeChal]?.key === k);
 
 /* ---- UI helpers ---- */
 const el = id => document.getElementById(id);
@@ -125,7 +208,7 @@ function isValidDecimalLiteral(v, opts = {}) {
 
     let d;
     try {
-        d = new Decimal(v);
+        d = D(v);
     } catch {
         return false;
     }
@@ -326,7 +409,6 @@ state.anko = state.anko || {
 };
 
 /* ---- Save / Load（Decimal対応） ---- */
-const SAVE_KEY = 'zunda_dimensions_save_v0_10';
 function save() {
     // ankoの存在と最低限の型を保証
     if (!state.anko) state.anko = {};
@@ -834,7 +916,7 @@ function applyOneShotUiFlags(e) {
     // 自動化解放
     if (e.flags.autoUnlocked) {
         // 既にtrueならそのまま
-        state.maxZunda = new Decimal('1e150');
+        state.maxZunda = D(EDA_UNLOCK);
         checkAutomationUnlocks()
     }
     if (e.tabs.edamame) {
@@ -859,22 +941,8 @@ for (let i = 2; i <= 8; i++) {
 }
 
 /* Prestige計算 */
-const PRESTIGE_REF = 38.8; // アンカー基準
-const PRESTIGE_P = 1.25; // 1.10〜1.25で好みへ
-const PRESTIGE_S = 6;    // とりあえず据え置き（立ち上がり感はSで微調整）
-
-function prestigeRawLevelFromZ(zDec) {
-    const lg = toNum(log10Safe(zDec));
-    const L = lg - PRESTIGE_REF;
-    if (L <= 0) return -1;
-
-    // --- ここでAを1e45→Lv6に合うよう毎回決定 ---
-    const L0 = (45 - PRESTIGE_REF);
-    const A = 6 / Math.pow(Math.log(1 + L0 / PRESTIGE_S), PRESTIGE_P);
-
-    const lvl = A * Math.pow(Math.log(1 + L / PRESTIGE_S), PRESTIGE_P);
-    return Math.floor(lvl);
-}
+const prestigeSystem = createPrestigeSystem({ toNum, log10Safe });
+const prestigeRawLevelFromZ = prestigeSystem.prestigeRawLevelFromZ;
 
 // スピードプレステージによる倍率取得
 function getPrestigeSpeedMult() { return Math.pow(3, state.prestige.speed || 0); }
@@ -1144,18 +1212,6 @@ function effectiveZps() {
     return base.pow(exp);
 }
 
-/* ---- AnkoDimensions ---- */
-// あんこディメンションのコスト設定
-const AD_COST = (() => {
-    const cost = {};
-    for (let i = 1; i <= 8; i++) {
-        const step = Math.pow(4, i);       // 4, 16, 64, 256, ...
-        const base = (i === 1) ? 1 : step; // 1, 16, 64, 256, ...
-        cost[i] = { base, step };
-    }
-    return cost;
-})();
-
 function getAnkoDimClearMult() {
     if (getEffects().adMulFromClears == false) return 1;
     const clears = state.ankonityClears || 0;
@@ -1177,9 +1233,7 @@ function getAnkoZundaMult() {
 
 function adCostAt(i) {
     const d = state.anko.dims[i];
-    const rule = AD_COST[i];
-    if (!rule) return null; // 未設定
-    return Math.ceil(rule.base * Math.pow(rule.step, d.bought || D(0))); // APコスト
+    return calcAdCost(i, d?.bought);
 }
 
 
@@ -1280,9 +1334,9 @@ function buyRoundRobinOnce() {
 function getAutoAscMul() {
     const raw = state.auto.ascMul ?? "1";
     try {
-        return new Decimal(raw); // 1e10 → 正しく 1e10 として解釈
+        return D(raw); // 1e10 → 正しく 1e10 として解釈
     } catch {
-        return new Decimal(1); // fallback
+        return D(1); // fallback
     }
 }
 
@@ -1293,7 +1347,7 @@ function maybeAutoAscend() {
     if (!canAscend()) return false;
 
     const mul = getAutoAscMul();           // 入力欄の指定倍率（Decimal）
-    const m = mul.lt(1) ? new Decimal(1) : mul;  // 念のため1未満は1に丸め
+    const m = mul.lt(1) ? D(1) : mul;  // 念のため1未満は1に丸め
 
     const nowRaw = Math.max(state.ascensionMult, 1);                     // 現在のアセンション倍率
     const nextRaw = ascNewMultFrom(Decimal.max(state.zunda, D(1)));       // 実行後の倍率
@@ -1455,7 +1509,9 @@ function doAscend() {
     }
 
     recomputeAllSkillEffects();
-    refreshCostMultipliers(); updateUI(); save();
+    refreshCostMultipliers();
+    markPrestigeDirty();
+    updateUI(); save();
 }
 // プレステージ実行
 function doPrestige(which) {
@@ -1479,6 +1535,7 @@ function doPrestige(which) {
     }
 
     recomputeAllSkillEffects();
+    markPrestigeDirty();
     updateUI(); save(); return true;
 }
 
@@ -1514,7 +1571,7 @@ function checkEdaSubtabProgress() {
         edaHintShown = true;
         setEdaButtonState();
     }
-    if (!edaUnlocked && state.zunda.gte('1e150')) {
+    if (!edaUnlocked && state.zunda.gte(EDA_UNLOCK)) {
         edaUnlocked = true;
         try { localStorage.setItem(EDA_UNLOCK_KEY, JSON.stringify(true)); } catch (e) { }
         setEdaButtonState();
@@ -1539,18 +1596,18 @@ function evaluateZundaProgress() {
     if (state.zunda.gte(D('100'))) best = Math.max(best, 3);
     if (D(tiers[2].bought).gte(D('1'))) best = Math.max(best, 4);
     if (state.zunda.gte(D('1e9'))) best = Math.max(best, 5);
-    if (state.zunda.gte(D('1e10'))) best = Math.max(best, 6);
-    if (state.zunda.gte(D('1e16'))) best = Math.max(best, 7);
+    if (state.zunda.gte(D(BOOST_UNLOCK))) best = Math.max(best, 6);
+    if (state.zunda.gte(D(ASC_UNLOCK))) best = Math.max(best, 7);
     if ((state.ascensionMult ?? 1) > 1) best = Math.max(best, 8);
     if (state.zunda.gte(D('1e16')) && (state.ascensionMult ?? 1) > 1) best = Math.max(best, 9);
     if (state.zunda.gte(D('1e35'))) best = Math.max(best, 10);
-    if (state.zunda.gte(D('1e40'))) best = Math.max(best, 11);
+    if (state.zunda.gte(D(PRESTIGE_UNLOCK))) best = Math.max(best, 11);
     if (best == 11 && state.zunda.lte(D('20')) && (state.prestige.power > 0 || state.prestige.cost > 0)) best = Math.max(best, 12);
     if ((best == 11 || best == 12) && state.prestige.speed > 0) best = Math.max(best, 13);
     if ((best == 12 || best == 13) && state.zunda.gte(D('1e9'))) best = Math.max(best, 14);
     if (best > 11 && state.zunda.gte(D('1e68'))) best = Math.max(best, 15);
     if (best == 15 && (state.zunda.gte(D('1e75') || state.zunda.lte(D('100'))))) best = Math.max(best, 16);
-    if (state.zunda.gte(D('1e150'))) best = Math.max(best, 17);
+    if (state.zunda.gte(D(EDA_UNLOCK))) best = Math.max(best, 17);
     if (best == 17 && (state.zunda.gte(D('1e170') || state.zunda.lte(D('100'))))) best = Math.max(best, 18);
     if (state.zunda.gte(D('1e200'))) best = Math.max(best, 19);
     if (best == 19 && state.zunda.lte(D('100'))) best = Math.max(best, 20);
@@ -1574,9 +1631,6 @@ function evaluateZundaProgress() {
     }
 }
 
-/* ---- アンコニティ ---- */
-const ANCONITY_CAP = new Decimal('1.8e308');
-
 // アンコニティ待機状態にする
 function setAnconityReady(on) {
     state.anconityReady = !!on;
@@ -1588,12 +1642,12 @@ function setAnconityReady(on) {
 function checkAnconity() {
     // 既に準備完了なら上限で固定
     if (state.anconityReady) {
-        state.zunda = Decimal.min(state.zunda, ANCONITY_CAP);
+        state.zunda = Decimal.min(state.zunda, INF);
         return;
     }
     // 閾値到達でフラグON＋固定
-    if (state.zunda.gte(ANCONITY_CAP)) {
-        state.zunda = ANCONITY_CAP;
+    if (state.zunda.gte(INF)) {
+        state.zunda = INF;
         setAnconityReady(true);
     }
 }
@@ -1645,7 +1699,7 @@ function ankoShakeAndParticles(btn, onDone) {
 // アンコニティ時にもろもろをリセット
 function applyAnconityResetLocks() {
     // ずんだ系の到達値をリセット
-    state.maxZunda = new Decimal('1e150');
+    state.maxZunda = D(EDA_UNLOCK);
 
     if (!getEffects().tabs.automation) {
         // ── 自動化を再ロック ──
@@ -1683,13 +1737,13 @@ function applyAnconityResetLocks() {
 // アンコニティ実行
 function doAnconityExecute() {
 
-    completeAnkoChallenge()
+    ankoChalLogic.completeAnkoChallenge()
     // AP +1
     state.ap = (state.ap || 0) + 1 * getEffects().apMul;
     state.anconityClears = (state.anconityClears || 0) + 1;
 
     // ずんだ/ブースト/アセン/プレステージ/枝豆/大豆/あんこディメンションを初期化
-    state.zunda = new Decimal(10);
+    state.zunda = D(10);
     state.boostZunda = D(0);
     state.boostEdamame = D(0);
     state.boostOther = D(0).add(getEffects().startBonuses.anconity.zb);
@@ -1710,12 +1764,12 @@ function doAnconityExecute() {
     }
 
     if (getEffects().startBonuses.anconity.zd1) {
-        state.maxZunda = new Decimal('1e150');
+        state.maxZunda = D(EDA_UNLOCK);
         tiers[1].bought = D(10);
         tiers[2].revealed = true;
     } else {
         // 最大到達等
-        state.maxZunda = new Decimal(10);
+        state.maxZunda = D(10);
     }
 
     // s7_1の効果
@@ -1743,7 +1797,7 @@ function doAnconityExecute() {
     const apEl = document.getElementById('apAmount');
     if (apEl) apEl.textContent = state.ap.toString();
 
-    if (window.updateAskillStates) window.updateAskillStates();
+    if (window.updateAskillStates) askill.updateAskillStates();
 
     // ZUNDA行の可視制御を初期化
     for (let i = 2; i <= 8; i++) {
@@ -1756,6 +1810,7 @@ function doAnconityExecute() {
 
     // 効果の再計算
     recomputeAllSkillEffects();
+    markPrestigeDirty();
 
     setAnconityReady(false);
     updateUI();
@@ -1766,7 +1821,7 @@ function doAnconityExecute() {
 function doAnconityReset() {
 
     // ずんだ/ブースト/アセン/プレステージ/枝豆/大豆/あんこディメンションを初期化
-    state.zunda = new Decimal(10);
+    state.zunda = D(10);
     state.boostZunda = D(0);
     state.boostEdamame = D(0);
     state.boostOther = D(0).add(getEffects().startBonuses.anconity.zb);
@@ -1787,12 +1842,12 @@ function doAnconityReset() {
     }
 
     if (getEffects().startBonuses.anconity.zd1) {
-        state.maxZunda = new Decimal('1e150');
+        state.maxZunda = D(EDA_UNLOCK);
         tiers[1].bought = D(10);
         tiers[2].revealed = true;
     } else {
         // 最大到達等
-        state.maxZunda = new Decimal(10);
+        state.maxZunda = D(10);
     }
 
     // s7_1の効果
@@ -1815,7 +1870,7 @@ function doAnconityReset() {
     const apEl = document.getElementById('apAmount');
     if (apEl) apEl.textContent = state.ap.toString();
 
-    if (window.updateAskillStates) window.updateAskillStates();
+    if (window.updateAskillStates) askill.updateAskillStates();
 
     // ZUNDA行の可視制御を初期化
     for (let i = 2; i <= 8; i++) {
@@ -1828,81 +1883,11 @@ function doAnconityReset() {
 
     // 効果の再計算
     recomputeAllSkillEffects();
+    markPrestigeDirty();
 
     setAnconityReady(false);
     updateUI();
     save();
-}
-
-// あんこチャレンジ開始
-function startAnkoChallenge(idx) {
-    state.anko = state.anko || {};
-    const running = state.anko.activeChal ?? -1;
-
-    // 同じものが実行中なら中止扱い
-    if (running === idx) {
-        stopAnkoChallenge();
-        return;
-    }
-    // ほかが走ってたら止める
-    if (running !== -1) stopAnkoChallenge();
-    // アンコニティ開始時と同じ状態へリセット
-    doAnconityReset();
-    state.anko.activeChal = idx;
-    state.anko.chalStartMs = Date.now();
-    state.anko.chalCounters = { ascCount: 0, totalDimBought: D(0), perDimOwned: Array(9).fill(0) };
-    if (isChal(5)) {
-        state.zunda = D(100);
-    }
-    recomputeAllSkillEffects();
-    refreshBoostAndAsc?.();
-    refreshAscUI();
-    refreshAnkoChallengeRunningUI();
-    updateUI();
-}
-
-// あんこチャレンジ中断
-function stopAnkoChallenge() {
-    if (!state.anko) return;
-    state.anko.activeChal = -1;
-    recomputeAllSkillEffects()
-    refreshAnkoChallengeRunningUI();
-    updateUI();
-}
-
-// あんこチャレンジ達成
-function completeAnkoChallenge() {
-    const running = state?.anko?.activeChal ?? -1;
-    if (running === -1) return; // 実行中なし
-
-    // 進捗更新
-    state.anko.challenges = state.anko.challenges || [];
-    const slot = state.anko.challenges[running - 1] || (state.anko.challenges[running - 1] = { cleared: false, bestTime: null });
-
-    slot.cleared = true;
-
-    // ベスト更新
-    const t = state.runSecondsAnko ?? null; // 秒（number想定）
-    if (t != null) {
-        if (slot.bestTime == null || t < slot.bestTime) slot.bestTime = t;
-    }
-
-    // 報酬
-    grantAnkoChallengeReward?.(running);
-
-    // チャレンジから抜ける
-    state.anko.activeChal = -1;
-
-    // 効果・コスト再評価（制約解除）
-    recomputeAllSkillEffects?.();
-    refreshCostMultipliers?.();
-
-    // UI反映
-    refreshAnkoChallengeRunningUI?.(); // ボタン「中止→開始」＆runningクラス解除
-    refreshAnkoChallengeClearedUI?.(); // 背景色変更（下で定義）
-    updateUI?.();
-
-    save?.(); // セーブ
 }
 
 // あんこチャレンジ報酬
@@ -1924,55 +1909,40 @@ function grantAnkoChallengeReward(idx) {
     }
 
     markAutomationDirty();
-    refreshAutomationUI?.(); // UIに「解禁済」をすぐ反映
+    automationUI.refreshIfDirty(); // UIに「解禁済」をすぐ反映
 }
 
 /* ---- あんこディメンション ---- */
 // 購入可能か判定
 function canBuyAD(i) {
-    const c = adCostAt(i);
-    if (c == null) return false;
-    return (state.ap || 0) >= c;
+    const bought = state.anko.dims[i].bought;
+    return canAffordAd(i, bought, state.ap, 1);
 }
 
 // 購入
 function tryBuyAD(i, n = 1) {
-    const rule = AD_COST[i];
-    if (!rule) return false; // 未設定
-    n = Math.max(1, Math.floor(n));
+    const bought = state.anko.dims[i].bought;
+    const total = calcAdTotalCost(i, bought, n);
+    if (!total) return false;
 
-    // まとめ買い（等比コスト）
-    const b = state.anko.dims[i].bought || D(0);
-    const a = rule.base * Math.pow(rule.step, b);
-    const r = rule.step;
-    const total = Math.ceil((r === 1) ? a * n : a * (Math.pow(r, n) - 1) / (r - 1));
+    if (state.ap.lt(total)) return false;
 
-    if ((state.ap || 0) < total) return false;
-    state.ap -= total;
-    state.anko.dims[i].bought = b.add(n);
-    save(); updateUI();
+    state.ap = state.ap.minus(total);
+    state.anko.dims[i].bought = bought.plus(n);
+
+    save();
+    updateUI();
     return true;
 }
 
 // 最大購入
 function maxAffordableAD(i) {
-    const rule = AD_COST[i];
-    if (!rule) return 0;
-    let lo = 0, hi = 1;
-    const b = state.anko.dims[i].bought || D(0);
-    const a = rule.base * Math.pow(rule.step, b);
-    const r = rule.step;
-    const have = state.ap || 0;
-    const totalCost = (n) => Math.ceil((r === 1) ? a * n : a * (Math.pow(r, n) - 1) / (r - 1));
-
-    while (totalCost(hi) <= have) hi *= 2;
-    while (lo < hi) {
-        const mid = Math.ceil((lo + hi) / 2);
-        if (totalCost(mid) <= have) lo = mid; else hi = mid - 1;
-    }
-    return lo;
+    return maxAffordableAd(
+        i,
+        state.anko.dims[i].bought,
+        state.ap
+    );
 }
-
 
 /* ---- 自動化タブ ---- */
 
@@ -1989,46 +1959,18 @@ function checkAutomationUnlocks() {
     }
 
     for (let i = 0; i < 8; i++) {
-        if (!state.auto.unlocked.zd[i] && state.maxZunda.gte(AUTO_THRESH.zd[i])) {
+        if (!state.auto.unlocked.zd[i] && state.maxZunda.gte(AUTO_THRESH_BY_ZUNDA.zd[i])) {
             state.auto.unlocked.zd[i] = true;
             markAutomationDirty();
             save();
         }
     }
-    if (!state.auto.unlocked.boost && state.maxZunda.gte(AUTO_THRESH.boost)) {
+    if (!state.auto.unlocked.boost && state.maxZunda.gte(AUTO_THRESH_BY_ZUNDA.boost)) {
         state.auto.unlocked.boost = true;
         markAutomationDirty();
         save();
     }
 }
-
-// ── ZD自動購入の一括トグル：true=全部オン / false=全部オフ ──
-function toggleAllAutomation(on) {
-    // ZD1〜ZD8
-    for (let i = 0; i < 8; i++) {
-        if (state.auto.unlocked.zd[i]) {
-            state.auto.enabled.zd[i] = !!on;
-            state.auto.enabled.zdFast[i] = !!on;
-        }
-    }
-    // BOOST
-    if (state.auto.unlocked.boost) {
-        state.auto.enabled.boost = !!on;
-    }
-    // Ascension
-    if (state.auto.unlocked.asc) {
-        state.auto.enabled.asc = !!on;
-    }
-    // Prestige
-    if (state.auto.unlocked.prest) {
-        state.auto.enabled.prest.speed = !!on;
-        state.auto.enabled.prest.power = !!on;
-        state.auto.enabled.prest.cost = !!on;
-    }
-    save();
-    refreshAutomationUI(); // チェックボックスのUIも即更新
-}
-
 
 /***** 6. UI ****************************************************************/
 
@@ -2108,7 +2050,7 @@ function build() {
     el('import').addEventListener('click', () => { const raw = prompt('セーブデータ(JSON)を貼り付けてください'); if (!raw) return; try { JSON.parse(raw); localStorage.setItem(SAVE_KEY, raw); location.reload(); } catch (e) { alert('無効なデータです。'); } });
     el('hardReset').addEventListener('click', () => { if (!confirm('本当に全消去しますか？')) return; localStorage.clear(); flashSaveStatus('データを削除しました'); setTimeout(() => location.reload(), 500); });
 
-    buildAutomationUI();
+    automationUI.buildAutomationUI();
     markAutomationDirty();
 
     // 枝豆UI
@@ -2162,11 +2104,11 @@ function build() {
 
 /* ========== ウィンドウ全体のサイズ変更 ========== */
 function updateAppScale() {
-    const baseWidth = 1000;      // CSSの --app-base-width と合わせる
-    const tabWidth = 160;        // --tab-w と合わせる
-    const charWidth = 280;
-    const gap = 16;              // .app-layout の gap
-    const bodyPadding = 24 * 2;  // body { padding:24px } 左右合計
+    const baseWidth = UI_LAYOUT.appBaseWidth;
+    const tabWidth = UI_LAYOUT.tabWidth;
+    const charWidth = UI_LAYOUT.charWidth;
+    const gap = UI_LAYOUT.gap;
+    const bodyPadding = UI_LAYOUT.bodyPaddingX;
 
     const vw = window.innerWidth;
 
@@ -2187,433 +2129,14 @@ window.addEventListener('load', updateAppScale);
 /* ========== キャラクター表示 ========== */
 
 // ずんだもん吹き出し：文字送り表示(タイプライター風)
-const Bubble = (() => {
-    let intervalId = null;
-    let typingToken = 0;
-
-    let lastText = "";
-    let isTyping = false;
-
-    let lastIndex = -1;
-
-    // セリフ切り替えインターバル
-    const ZUNDA_AUTO_DELAY_MS = 60_000;
-    let zundaAutoTimeoutId = null;
-
-    const ZUNDA_SPRITE = {
-        normal: "assets/characters/zundamon/zundamon-normal.webp",
-        hand: "assets/characters/zundamon/zundamon-hand.webp",
-        uwame: "assets/characters/zundamon/zundamon-uwame.webp",
-        uwame2: "assets/characters/zundamon/zundamon-uwame2.webp",
-        uwame3: "assets/characters/zundamon/zundamon-uwame3.webp",
-        koshi: "assets/characters/zundamon/zundamon-koshi.webp",
-        koshi2: "assets/characters/zundamon/zundamon-koshi2.webp",
-        yubi: "assets/characters/zundamon/zundamon-yubi.webp",
-        banzai: "assets/characters/zundamon/zundamon-banzai.webp",
-        banzai2: "assets/characters/zundamon/zundamon-banzai2.webp",
-        mufufu: "assets/characters/zundamon/zundamon-mufufu.webp",
-        guruguru: "assets/characters/zundamon/zundamon-guruguru.webp",
-        guruguru2: "assets/characters/zundamon/zundamon-guruguru2.webp",
-        bikkuri: "assets/characters/zundamon/zundamon-bikkuri.webp",
-        bikkuri2: "assets/characters/zundamon/zundamon-bikkuri2.webp",
-        shirome: "assets/characters/zundamon/zundamon-shirome.webp",
-        tere: "assets/characters/zundamon/zundamon-tere.webp",
-        oko: "assets/characters/zundamon/zundamon-oko.webp",
-    };
-
-    const ZUNDA_LINES_NORMAL = [
-        { text: "最近僕が不憫な目に遭う動画が増えてる気がするのだ", sprite: "guruguru" },
-        { text: "進捗どうなのだ？", sprite: "normal" },
-        { text: "無量大数を超えてからが本番なのだ", sprite: "koshi2" },
-        { text: "僕はもともとずんだアローなのだ　忘れられがちなのだ", sprite: "koshi2" },
-        { text: "早朝にずん子を大音量で起こしたらめちゃくちゃ怒られたのだ　もうやらないのだ", sprite: "uwame3" },
-        { text: "世界の終わりにずんだを食べるのだ", sprite: "normal" },
-        { text: "マグロは赤マンボウの代替品なのだ", sprite: "normal" },
-        { text: "ずん子といっしょにずんだカフェをオープンするのが夢なのだ！", sprite: "banzai2" },
-        { text: "踊ってない夜を知らないのだ", sprite: "hand" },
-        { text: "ずんだもんは女の子なのだ", sprite: "normal" },
-        { text: "公式設定では僕は女の子だということをみんな忘れてるのだ", sprite: "oko" },
-        { text: "もちもちなのだ", sprite: "mufufu" },
-        { text: "まだまだいけるのだ", sprite: "hand" },
-        { text: "夜はちゃんと眠れてるのだ？", sprite: "normal" },
-        { text: "ずんだシェイクはもう飲んだのだ？", sprite: "koshi" },
-        { text: "てかもう寝るのだ", sprite: "uwame" },
-        { text: "ずんだホライずんを視聴するのだ", sprite: "yubi" },
-        { text: "きりたんはゲームが強すぎるのだ", sprite: "guruguru" },
-        { text: "ありのままが何なのか、わからなくてもいいのだ", sprite: "normal" },
-        { text: "栄養バランスは大事なのだ　ずんだばかり食べてちゃダメなのだ", sprite: "koshi" },
-        { text: "ずんだどんって一体誰なのだ...", sprite: "uwame3" },
-        { text: "たまにお嬢様みたいな服を着て出かけるのだ　新鮮な気持ちになれて楽しいのだ", sprite: "tere" },
-        { text: "ゴミの分別なら僕に任せるのだ", sprite: "koshi2" },
-        { text: "これだけずんだを食べてもきりたんには勝てなかったのだ...", sprite: "oko" },
-        { text: "真っ青な空間で僕に変な動きをさせる動画は何が目的なのだ？", sprite: "shirome" },
-        { text: "ずんだの道も一歩から　なのだ", sprite: "mufufu" },
-    ];
-
-    const ZUNDA_LINES_BY_PROGRESS = {
-        0: [],
-
-        1: [
-            { text: "ずんだもんなのだ", sprite: "normal" },
-            { text: "さっそくだけど僕の代わりにずんだを増やしてほしいのだ", sprite: "hand" },
-            { text: "というのも きりたんにゲームでボコボコに負けちゃって", sprite: "uwame2" },
-            { text: "勝つためにずんだを大量に食べてパワーアップしたいのだ", sprite: "uwame" },
-            { text: "それ以外に方法はないのだ", sprite: "koshi2" },
-            { text: "まずはずんだディメンションを購入してずんだを生産するのだ", sprite: "yubi" },
-        ],
-
-        2: [
-            { text: "ずんだディメンションがずんだを生産し始めたのだ", sprite: "koshi" },
-        ],
-
-        3: [
-            { text: "新しくずんだディメンションを買うのだ", sprite: "yubi" },
-        ],
-
-        4: [
-            { text: "ずんだディメンションがずんだディメンションを生産するのだ", sprite: "hand" },
-            { text: "この調子でどんどんずんだを増やすのだ", sprite: "hand" },
-        ],
-
-        5: [
-            { text: "もう1億を超えたのだ？ずんだを増やす才能にあふれてるのだ！", sprite: "banzai2" },
-            { text: "1京を超えたら何かが起こる予感がするのだ", sprite: "uwame" },
-        ],
-
-        6: [
-            { text: "ブーストが解禁されたのだ！", sprite: "banzai" },
-            { text: "全部のずんだディメンションをパワーアップできるのだ", sprite: "banzai" },
-        ],
-
-        7: [
-            { text: "ずんだアセンションが解禁されたのだ！", sprite: "hand" },
-            { text: "進行がリセットされる代わりに超パワーアップなのだ", sprite: "hand" },
-        ],
-
-        8: [
-            { text: "アセンションして頭がすっきりしたのだ", sprite: "mufufu" },
-            { text: "もっともっとずんだを増やせるのだ！", sprite: "mufufu" },
-        ],
-
-        9: [],
-
-        10: [
-            { text: "自動化が解禁されたのだ！", sprite: "banzai2" },
-            { text: "面倒なクリックを代わりにやってくれるのだ", sprite: "banzai2" },
-            { text: "左のタブから自動化を選べるのだ", sprite: "yubi" },
-        ],
-
-        11: [
-            { text: "ずんだプレステージが解禁されたのだ！", sprite: "hand" },
-            { text: "転生して超超パワーアップなのだ", sprite: "hand" },
-            { text: "最初はスピードプレステージがおすすめなのだ", sprite: "yubi" },
-        ],
-
-        12: [
-            { text: "あれっ　スピードプレステージを選ばなかったのだ？", sprite: "shirome" },
-            { text: "人から言われたことに従うのが嫌なタイプ...？", sprite: "shirome" },
-        ],
-
-        13: [
-            { text: "すごいパワーを感じる...！", sprite: "bikkuri" },
-            { text: "転生したらチート能力がもらえるって本当だったのだ", sprite: "bikkuri" },
-        ],
-
-        14: [],
-
-        15: [
-            { text: "ついに無量大数を突破したのだ", sprite: "normal" },
-            { text: "でもまだまだ『上』を目指せるのだ", sprite: "normal" },
-        ],
-
-        16: [],
-
-        17: [
-            { text: "枝豆と大豆が解禁されたのだ！", sprite: "banzai" },
-            { text: "上のタブから画面を切り替えるのだ", sprite: "banzai" },
-        ],
-
-        18: [],
-
-        19: [
-            { text: "ずんだが増えすぎてやばいのだ", sprite: "bikkuri" },
-            { text: "宇宙がずんだでいっぱいになりそうなのだ", sprite: "bikkuri" },
-            { text: "もしも1.8e308を超えたら宇宙が崩壊するのだ...", sprite: "uwame3" },
-        ],
-
-        20: [],
-
-        21: [
-            { text: "うわーっ！1.8e308に届きそうなのだ！", sprite: "guruguru2" },
-        ],
-
-        22: [],
-
-        23: [
-            { text: "ここまで来ると逆にどうなるか気になるのだ", sprite: "uwame" },
-            { text: "いっそ1.8e308まで増やしてみる...？", sprite: "uwame" },
-        ],
-
-        24: [],
-
-        25: [
-            { text: "ラストスパートなのだ！", sprite: "banzai2" },
-        ],
-
-        26: [],
-
-        27: [
-            { text: "ああ...宇宙がずんだでいっぱいなのだ", sprite: "guruguru2" },
-        ],
-
-        28: [],
-
-        29: [
-            { text: "あ、あれ？無事なのだ？", sprite: "shirome" },
-        ],
-
-        30: [],
-    };
-
-    const ZUNDA_TUTORIAL_QUEUE = [];
-
-
-    function getEls() {
-        return {
-            wrap: document.getElementById('char-bubble'),
-            text: document.getElementById('char-bubble-text'),
-        };
-    }
-
-    // ランダム台詞リスト
-
-    function pickNormalLine() {
-        if (ZUNDA_LINES_NORMAL.length === 0) return "";
-        if (ZUNDA_LINES_NORMAL.length === 1) return ZUNDA_LINES_NORMAL[0];
-
-        let i;
-        do { i = Math.floor(Math.random() * ZUNDA_LINES_NORMAL.length); }
-        while (i === lastIndex);
-
-        lastIndex = i;
-        return ZUNDA_LINES_NORMAL[i];
-    }
-
-    function enqueueTutorialForProgress(newP) {
-        ZUNDA_TUTORIAL_QUEUE.length = 0;
-        const pool = ZUNDA_LINES_BY_PROGRESS[newP];
-
-        if (Array.isArray(pool) && pool.length > 0) {
-            // newPの説明だけ順番に出す
-            ZUNDA_TUTORIAL_QUEUE.push(...pool);
-            ZUNDA_TUTORIAL_QUEUE.push("このメッセージが出たらエラーだよ　開発者に報告してね");
-        }
-    }
-
-    function getNextZundaLine() {
-        if (ZUNDA_TUTORIAL_QUEUE.length > 1) {
-            return ZUNDA_TUTORIAL_QUEUE.shift();
-        } else if (ZUNDA_TUTORIAL_QUEUE.length == 0) {
-            return pickNormalLine();
-        }
-        // queueが1のとき = チュートリアルの最後のセリフ
-        return { text: "", sprite: "normal" };
-    }
-
-    function showNextZundaLine() {
-        const item = getNextZundaLine();
-        if (item.text == "") return;
-
-        setZundaSprite(item.sprite);
-        Bubble.showType(item.text, { cps: 20 });
-
-        updateBubbleNextIcon();
-        updateBubbleCursor();
-
-        resetZundaAutoTalkTimer();
-    }
-
-    // 吹き出しの▼マークの表示切り替え
-    function updateBubbleNextIcon() {
-        const icon = document.getElementById('bubble-next');
-        const wrap = document.getElementById('char-bubble');
-        if (!icon || !wrap) return;
-
-        // 吹き出し非表示なら消す
-        if (wrap.hidden) {
-            icon.classList.add('is-hidden');
-            return;
-        }
-
-        const hasQueue = ZUNDA_TUTORIAL_QUEUE.length > 1;
-        const typingDone = !isTyping;
-
-        if (hasQueue && typingDone) icon.classList.remove('is-hidden');
-        else icon.classList.add('is-hidden');
-    }
-
-    // カーソルを重ねた時の表示切り替え
-    function updateBubbleCursor() {
-        const bubble = document.getElementById('char-bubble');
-        if (!bubble) return;
-
-        const hasNext = ZUNDA_TUTORIAL_QUEUE.length > 1;
-
-        const clickable = hasNext || isTyping;
-
-        if (clickable) {
-            bubble.classList.remove('normal-cursor');
-        } else {
-            bubble.classList.add('normal-cursor');
-        }
-    }
-
-    function setZundaSprite(key) {
-        const avatar = document.getElementById("char-avatar-img");
-        if (!avatar) return;
-
-        const src = ZUNDA_SPRITE[key] ?? ZUNDA_SPRITE.normal;
-
-        // 余計な再代入を避ける
-        if (avatar.dataset.sprite !== key) {
-            avatar.src = src;
-            avatar.dataset.sprite = key;
-        }
-    }
-
-    function resetZundaAutoTalkTimer() {
-        // 既存タイマーを破棄
-        if (zundaAutoTimeoutId) {
-            clearTimeout(zundaAutoTimeoutId);
-            zundaAutoTimeoutId = null;
-        }
-
-        // 次回発火を予約
-        zundaAutoTimeoutId = setTimeout(() => {
-            // チュートリアル中は何もしない（次のリセットは次の操作で）
-            if (ZUNDA_TUTORIAL_QUEUE.length > 0) return;
-
-            // タイピング中は割り込まない
-            if (Bubble.isTyping && Bubble.isTyping()) {
-                // タイピングが終わったら再度60秒待ちたいので、ここで再予約
-                resetZundaAutoTalkTimer();
-                return;
-            }
-
-            // 吹き出しが非表示なら出す（不要ならこの行は消してOK）
-            const bubble = document.getElementById("char-bubble");
-            if (bubble && bubble.hidden) bubble.hidden = false;
-
-            // 通常セリフを表示（キュー優先ロジックを流用）
-            showNextZundaLine();
-
-            // ★自動発話が起きた瞬間から再カウント
-            resetZundaAutoTalkTimer();
-        }, ZUNDA_AUTO_DELAY_MS);
-    }
-
-    function stopTyping() {
-        if (intervalId) { clearInterval(intervalId); intervalId = null; }
-    }
-
-    function showType(text, { cps = 18 } = {}) {
-        const { wrap, text: el } = getEls();
-        if (!wrap || !el) return;
-
-        typingToken++;
-        const myToken = typingToken;
-
-        stopTyping();
-
-        lastText = String(text ?? "");
-        isTyping = true;
-
-        wrap.hidden = false;
-        el.textContent = "";
-
-        cps = Math.max(1, Number(cps) || 18);
-        const intervalMs = Math.round(1000 / cps);
-
-        let i = 0;
-        intervalId = setInterval(() => {
-            if (myToken !== typingToken) return;
-
-            i++;
-            el.textContent = lastText.slice(0, i);
-
-            if (i >= lastText.length) {
-                stopTyping();
-                isTyping = false;
-                updateBubbleNextIcon();
-                updateBubbleCursor()
-            }
-        }, intervalMs);
-    }
-
-    function revealAll() {
-        const { text: el } = getEls();
-        if (!el) return;
-        if (!isTyping) return;
-
-        typingToken++;
-        stopTyping();
-
-        el.textContent = lastText;
-        isTyping = false;
-        updateBubbleNextIcon();
-        updateBubbleCursor()
-    }
-
-    function bindClick() {
-        const { wrap } = getEls();
-        if (!wrap) return;
-
-        wrap.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            // 文字送り中：全文表示
-            if (isTyping) {
-                revealAll();
-                return;
-            }
-
-            // 全文表示済み：次のランダム台詞
-            showNextZundaLine();
-        });
-    }
-
-    // ずんだもん画像先読み
-    function preloadZundaSprites() {
-        for (const src of Object.values(ZUNDA_SPRITE)) {
-            const img = new Image();
-            img.src = src;
-        }
-    }
-    document.addEventListener("DOMContentLoaded", preloadZundaSprites);
-    document.addEventListener("DOMContentLoaded", resetZundaAutoTalkTimer);
-
-    return { bindClick, showNextZundaLine, enqueueTutorialForProgress, showType, revealAll };
-})();
-
-/* ========== タブ切り替え ========== */
-const TAB_KEY = 'zunda_active_tab';
-function switchTab(name) {
-    // view内容切り替え
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.target === `view-${name}`));
-    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
-
-    // キャラ切り替え
-    document.querySelectorAll('.char-portrait')
-        .forEach(c => c.classList.remove('active'));
-    const charEl = document.getElementById(`char-${name}`);
-    if (charEl) charEl.classList.add('active');
-    try { localStorage.setItem(TAB_KEY, name); } catch (e) { }
-}
-document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.tab-btn'); if (!btn) return;
-    const target = btn.dataset.target?.replace('view-', ''); if (target) switchTab(target);
+export const Bubble = createBubble({
+    linesNormal: ZUNDA_LINES_NORMAL,
+    autoDelayMs: ZUNDA_AUTO_DELAY_MS,
+    linesByProgress: ZUNDA_LINES_BY_PROGRESS,
+    spriteMap: ZUNDA_SPRITE,
+    typeCps: 20,
+    enableAutoTalk: true,
 });
-(function initTab() { let n = 'zunda'; try { n = localStorage.getItem(TAB_KEY) || 'zunda'; } catch (e) { } switchTab(n); })();
 
 /* ========== サブタブ（ZUNDA / EDAMAME） ========== */
 const SUBTAB_KEY = 'zunda_subtab';
@@ -2663,108 +2186,48 @@ document.addEventListener('click', (e) => {
 /* ========== ずんだディメンション ========== */
 
 // コストUI更新
-function refreshCosts() {
-    for (let i = 1; i <= 8; i++) {
-        const t = tiers[i];
-        const cost1 = costAt(t); // Decimal
-        el(`cost1-zd${i}`).textContent = fmt(cost1);
-        const m = maxAffordable(t);
-        if (m > 0) { el(`costMax-zd${i}`).textContent = fmt(totalCost(t, m)); el(`buyMax-zd${i}`).disabled = false; }
-        else { el(`costMax-zd${i}`).textContent = fmt(cost1); el(`buyMax-zd${i}`).disabled = true; }
-        el(`buy1-zd${i}`).disabled = state.zunda.lt(cost1);
-    }
-
-    // 枝豆
-    el('edaBoostCost').textContent = fmt(edaBoostCost());
-    el('edaExpCost').textContent = fmt(edaExpCost());
-
-    // 大豆
-    el('soyBoostUpCost').textContent = fmt(soyBoostUpCost());
-    el('soyZd8Cost').textContent = fmt(soyZd8Cost());
-}
+const costsUI = createCostsUI({
+    el, fmt,
+    getState: () => state,
+    getTiers: () => tiers,
+    costAt, maxAffordable, totalCost,
+    edaBoostCost, edaExpCost,
+    soyBoostUpCost, soyZd8Cost,
+});
 
 // ZD2以降の表示/非表示切り替え
-function updateVisibility() {
-    for (let i = 2; i <= 8; i++) {
-        const row = document.getElementById(`row-zd${i}`); if (!row) continue;
-        const lower = tiers[i - 1];
-        const shouldShow = D(lower.bought).gt(0);
-        const hidden = row.style.display === 'none';
-        if (shouldShow) {
-            if (hidden) { row.style.display = 'grid'; }
-        } else row.style.display = 'none';
-    }
-}
+const visibilityUI = createVisibilityUI({
+    getTiers: () => tiers,
+    D,
+});
 
-// ブーストUI更新
-function refreshBoostUI() {
-    const btn = el("buyBoost"), cnt = el("boostCount"), mult = el("boostMult"), btnMax = el("buyBoostMax");
-    const total = boostTotal();
-    const perItem = getBoostPerItem();
-    const cost = zundaBoostCost();
-    cnt.textContent = total;
-    mult.textContent = fmt(D(perItem).pow(total).toFixed(2) + "×");
-    if (!canUseBoost()) {
-        btn.textContent = "解禁条件: 1e10 ずんだ"; btn.disabled = true;
-        btnMax.textContent = "最大購入"; btnMax.disabled = true;
-    } else {
-        btn.textContent = `購入 ${fmt(cost)}`;
-        btn.disabled = state.zunda.lt(cost);
-        const m = maxBoostAffordableZunda();
-        btnMax.textContent = "最大購入";
-        btnMax.disabled = m <= 0;
-    }
-}
-
-
-const canAscend = () => state.zunda.gte(ASC_UNLOCK);
-// アセンションのUI更新
-function refreshAscUI() {
-    const btn = el("doAscend"), nowEl = el("ascNow");
-    const nowRaw = Math.max(state.ascensionMult, 1);
-    const nextRaw = ascNewMultFrom(Decimal.max(state.zunda, D(1)));
-
-    if (nowEl) nowEl.textContent = "×" + fmt(nowRaw.toFixed(2));
-    const unlocked = canAscend();
-    const betterRaw = nextRaw > nowRaw;
-    if (!unlocked) {
-        btn.innerHTML = `ずんだアセンション<br><span class="sub">解禁条件: 1e16 ずんだ</span>`;
-        btn.disabled = true;
-    } else {
-        const ratioEff = nextRaw / nowRaw;
-        btn.innerHTML = `ずんだアセンションを発動<br><span class="sub">倍率: ×${fmt2(ratioEff.toFixed(2))}</span>`;
-        btn.disabled = !betterRaw;
-    }
-}
-function refreshBoostAndAsc() { refreshBoostUI(); refreshAscUI(); }
-
+// ブースト・アセンションUI更新
+const boostAscUI = createBoostAscUI({
+    el, fmt, fmt2, D, Decimal,
+    getState: () => state,
+    ASC_UNLOCK,
+    boostTotal, getBoostPerItem,
+    zundaBoostCost, canUseBoost, maxBoostAffordableZunda,
+    ascNewMultFrom,
+});
 
 // プレステージのUI更新
-function refreshPrestigeUI() {
-    const unlocked = state.zunda.gte ? state.zunda.gte(D(PRESTIGE_UNLOCK))
-        : (toNum(state.zunda) >= PRESTIGE_UNLOCK);
+const prestigeUI = createPrestigeUI({
+    getState: () => state,
+    el,
+    D,
+    toNum,
+    PRESTIGE_UNLOCK,
+    prestigeRawLevelFromZ,
+});
 
-    const curSpd = state.prestige.speed || 0, curPow = state.prestige.power || 0, curCst = state.prestige.cost || 0;
-
-    const calc = unlocked ? prestigeRawLevelFromZ(state.zunda) : -1;
-
-    const nextSpd = unlocked ? Math.max(curSpd, Math.max(0, calc)) : curSpd;
-    const nextPow = unlocked ? Math.max(curPow, Math.max(0, calc)) : curPow;
-    const nextCst = unlocked ? Math.max(curCst, Math.max(0, calc)) : curCst;
-
-    const canSpd = unlocked && (calc > curSpd);
-    const canPow = unlocked && (calc > curPow);
-    const canCst = unlocked && (calc > curCst);
-
-    el('spdLabel').textContent = `Lv${curSpd} → Lv${nextSpd}`;
-    el('powLabel').textContent = `Lv${curPow} → Lv${nextPow}`;
-    el('cstLabel').textContent = `Lv${curCst} → Lv${nextCst}`;
-
-    el('doPrestigeSpeed').disabled = !canSpd;
-    el('doPrestigePower').disabled = !canPow;
-    el('doPrestigeCost').disabled = !canCst;
+function markPrestigeDirty() {
+    prestigeUI.markDirty();
 }
-function refreshPrestigeUIWrapper() { refreshPrestigeUI(); }
+
+function refreshPrestigeUIWrapper() {
+    prestigeUI.refreshIfDirty();
+}
 
 // 解禁UI
 function checkUnlockPanels() {
@@ -2953,1024 +2416,127 @@ function refreshAnkoDimsUI() {
 
 /* ========== あんこスキル ========== */
 
-(function () {
+const askill = initAskillTree({
+    getState: () => state,
+    save,
+    recomputeAllSkillEffects,
+    getZdMultFromUnspentAp,
+    getASkillLabel,
+    getASkillDesc,
 
-    /* ---- あんこスキル関連 ---- */
-    const skillCosts = {
-        s1: 0, s2_1: 1, s2_2: 1,
-        s3_1: 2, s3_2: 2,
-        s4: 3,
-        s5_1: 8, s5_2: 8, s5_3: 12,
-        s6_1: 15, s6_2: 15, s6_3: 20,
-        s7_1: 30, s7_2: 40, s7_3: 35,
-        s8: 512,
-        s9_1: 900, s9_2: 800,
-        s10_1: 1050, s10_2: 800, s10_3: 800,
-        s11_1: 1050, s11_2: 800, s11_3: 800,
-        s12: 10000,
-    };
-
-    const prereqAny = {
-        s1: [],
-        s2_1: ['s1'], s2_2: ['s1'],
-        s3_1: ['s2_1'], s3_2: ['s2_2'],
-        s4: ['s3_1', 's3_2'], // 3-1 または 3-2
-        s5_1: ['s4'], s5_2: ['s4'], s5_3: ['s4'],
-        s6_1: ['s5_1'], s6_2: ['s5_2'], s6_3: ['s5_3'],
-        s7_1: ['s6_1'], s7_2: ['s6_2'], s7_3: ['s6_3'],
-        s8: ['s7_1', 's7_2', 's7_3'],
-        s9_1: ['s8'], s9_2: ['s8'],
-        s10_1: ['s9_1'], s10_2: ['s9_2'], s10_3: ['s9_2'],
-        s11_1: ['s10_1'], s11_2: ['s10_2'], s11_3: ['s10_3'],
-        s12: ['s11_1', 's11_2', 's11_3']
-    };
-
-    const POS = {
-        s1: { x: 50, y: 12 },
-        s2_1: { x: 34, y: 35 }, s2_2: { x: 66, y: 35 },
-        s3_1: { x: 34, y: 60 }, s3_2: { x: 66, y: 60 },
-        s4: { x: 50, y: 85 },
-        s5_1: { x: 17, y: 110 }, s5_2: { x: 50, y: 110 }, s5_3: { x: 83, y: 110 },
-        s6_1: { x: 17, y: 135 }, s6_2: { x: 50, y: 135 }, s6_3: { x: 83, y: 135 },
-        s7_1: { x: 17, y: 160 }, s7_2: { x: 50, y: 160 }, s7_3: { x: 83, y: 160 },
-        s8: { x: 50, y: 185 },
-        s9_1: { x: 34, y: 210 }, s9_2: { x: 66, y: 210 },
-        s10_1: { x: 17, y: 235 }, s10_2: { x: 50, y: 235 }, s10_3: { x: 83, y: 235 },
-        s11_1: { x: 17, y: 260 }, s11_2: { x: 50, y: 260 }, s11_3: { x: 83, y: 260 },
-        s12: { x: 50, y: 285 },
-    };
-    const EDGES = [
-        ['s1', 's2_1'], ['s1', 's2_2'],
-        ['s2_1', 's3_1'], ['s2_2', 's3_2'],
-        ['s3_1', 's4'], ['s3_2', 's4'],
-        ['s4', 's5_1'], ['s4', 's5_2'], ['s4', 's5_3'],
-        ['s5_1', 's6_1'], ['s5_2', 's6_2'], ['s5_3', 's6_3'],
-        ['s6_1', 's7_1'], ['s6_2', 's7_2'], ['s6_3', 's7_3'],
-        ['s7_1', 's8'], ['s7_2', 's8'], ['s7_3', 's8'],
-        ['s8', 's9_1'], ['s8', 's9_2'],
-        ['s9_1', 's10_1'], ['s9_2', 's10_2'], ['s9_2', 's10_3'],
-        ['s10_1', 's11_1'], ['s10_2', 's11_2'], ['s10_3', 's11_3'],
-        ['s11_1', 's12'], ['s11_2', 's12'], ['s11_3', 's12'],
-    ];
-
-    function label(id) {
-        return ({
-            s1: '1 スターターセット',
-            s2_1: '2-1 スタートダッシュ',
-            s2_2: '2-2 指数追加',
-            s3_1: '3-1 AP温存界隈',
-            s3_2: '3-2 集中力',
-            s4: '4 強欲なドロー',
-            s5_1: '5-1 準備万端',
-            s5_2: '5-2 ブースト中毒',
-            s5_3: '5-3 じわじわ8',
-            s6_1: '6-1 値切り上手',
-            s6_2: '6-2 狂気的な収穫',
-            s6_3: '6-3 冒涜的な栽培',
-            s7_1: '7-1 ハッピープレゼント',
-            s7_2: '7-2 こしあんパワー',
-            s7_3: '7-3 つぶあんパワー',
-            s8: '8 タイムアタック開始',
-            s9_1: '9-1 義務的な周回',
-            s9_2: '9-2 二毛作',
-            s10_1: '10-1 Idleな発想',
-            s10_2: '10-2 大福パワー',
-            s10_3: '10-3 ブーストのブースト',
-            s11_1: '11-1 Idleな作戦',
-            s11_2: '11-2 大福パワー',
-            s11_3: '11-3 増加する指数',
-            s12: '12 旅の準備',
-        })[id] || id;
-    }
-    // あんこスキル説明
-    function desc(id) {
-        return ({
-            s1: 'ずんだディメンションの自動購入（低速）と枝豆が常にアンロックされ、アンコニティ開始時にずんだディメンション1を10個所持した状態になる。',
-            s2_1: 'ZPSが25倍に強化される。',
-            s2_2: 'ZPSの指数に0.05が追加される。',
-            s3_1: '未使用のAPに応じて全てのずんだディメンションの効率が強化(現在x1.00)',
-            s3_2: 'アセンションの効力倍率が^1.2で強化。',
-            s4: 'APの入手量が2倍に強化。',
-            s5_1: 'アンコニティ開始時にずんだブーストを20個所持した状態になる。',
-            s5_2: 'ブースト1個あたりの倍率を20%強化。',
-            s5_3: 'ずんだディメンション8の効率を(所有数*4)%強化。',
-            s6_1: 'アンコニティ開始時にコストプレステージがレベル15になる。',
-            s6_2: '枝豆入手量を5倍に強化。',
-            s6_3: 'SoyPSを3加算。',
-            s7_1: 'アンコニティ開始時にずんだディメンション2～6を1個所持した状態になる。',
-            s7_2: 'あんこディメンション1の効率を3倍に強化。',
-            s7_3: 'あんこディメンション2の効率を1.5倍に強化。',
-            s8: 'あんこチャレンジの合計最速クリア時間に応じてAPの入手量が増加(現在x1.00)',
-            s9_1: 'アンコニティ達成回数に応じて全あんこディメンションの効率を強化(現在x1.00)',
-            s9_2: 'ずんだディメンションを購入時、大豆を0.1入手。',
-            s10_1: '最速アンコニティ時間x10が経過するごとにAPを1増加(この効果はオフラインでも発動する)',
-            s10_2: 'あんこディメンション3の効率を1.3倍に強化。',
-            s10_3: 'あんこチャレンジ4の最速クリア時間に応じてブーストの効力倍率を強化(現在x1.00)',
-            s11_1: '最速アンコニティ時間x10が経過するごとにアンコニティ達成回数を1増加(この効果はオフラインでも発動する)',
-            s11_2: '全てのずんだディメンションの効率を8倍に強化。',
-            s11_3: 'あんこチャレンジ13の最速クリア時間に応じてZPSに指数が追加される(現在+0.00)',
-            s12: 'あんこを10000所持した状態でアンコニティを開始する。'
-        })[id] || '';
-    }
-
-
-
-    function isOwned(id) {
-        const o = state?.skills?.anko?.owned;
-        return !!(o && typeof o === 'object' && o[id]);
-    }
-    function meetsPrereq(id) {
-        const reqs = prereqAny[id] ?? [];
-        if (reqs.length === 0) return true;
-        return reqs.some(r => isOwned(r)); // OR条件
-    }
-    function canBuy(id) {
-        const ap = state.ap || 0;
-        const cost = skillCosts[id] || 0;
-        return !isOwned(id) && meetsPrereq(id) && ap >= cost;
-    }
-
-    function updateAskillStates() {
-        const ap = state.ap || 0;
-        document
-            .querySelectorAll('#askill-stage .askill-canvas .askill-node')
-            .forEach(n => {
-                const id = n.dataset.skill;
-                const cost = skillCosts[id] || 0;
-
-                const owned = isOwned(id);
-                const prereq = meetsPrereq(id);
-                const can = !owned && prereq && ap >= cost;
-
-                // 排他的に付け替える
-                n.classList.toggle('bought', owned);
-                n.classList.toggle('ready', can);
-                n.classList.toggle('locked', !owned && !can);
-
-                // バッジ表示
-                const badgeVal = n.querySelector('.ap-val');
-                if (badgeVal) {
-                    if (owned) {
-                        badgeVal.textContent = '✓';             // 購入済み
-                        //badgeVal.parentElement.classList.add('bought');
-                    } else {
-                        badgeVal.textContent = cost;            // 未購入ならコスト
-                        //badgeVal.parentElement.classList.remove('bought');
-                    }
-                }
-            });
-    }
-
-    function handleSkillClick(e) {
-        const n = e.currentTarget;
-        const id = n.dataset.skill;
-        if (isOwned(id)) return;
-
-        const cost = skillCosts[id] || 0;
-
-        if (!meetsPrereq(id)) {
-            return;
-        }
-        if ((state.ap || 0) < cost) {
-            return;
-        }
-
-        state.ap -= cost;
-        (state.skills ??= {});
-        (state.skills.anko ??= {});
-        (state.skills.anko.owned ??= {});
-        state.skills.anko.owned[id] = true;
-
-        const apEl = document.getElementById('apAmount');
-        if (apEl) apEl.textContent = state.ap;
-
-        save();
-        recomputeAllSkillEffects()
-        updateAskillStates();
-    }
-
-    function initSkillPurchase() {
-        document.querySelectorAll('#askill-stage .askill-canvas .askill-node').forEach(n => {
-            const nn = n.cloneNode(true);
-            n.replaceWith(nn);
-        });
-        document.querySelectorAll('#askill-stage .askill-canvas .askill-node').forEach(n => {
-            n.addEventListener('click', handleSkillClick);
-        });
-        updateAskillStates();
-    }
-
-    // DOMContentLoaded時は様子見（ノード未生成なら何もしない）
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('askill-stage')) {
-            // initAskillPurchaseはbuildNodes後に明示呼び出しが来る
-        }
-    });
-
-    // スキルの説明文を更新
-    function updateAskillDescriptions() {
-        const el = document.getElementById('desc-s3_1');
-        if (el) {
-            const m = getZdMultFromUnspentAp()
-            el.textContent =
-                `未使用のAPに応じて全てのずんだディメンションの効率が強化される。(現在x${m.toFixed(2)})`;
-        }
-    }
-
-    // 外から呼べるフック（buildNodes 後に呼ぶ用）
-    window.initAskillPurchase = initSkillPurchase;
-    window.updateAskillStates = updateAskillStates;
-    window.updateAskillDescriptions = updateAskillDescriptions;
-
-    // costを書き込む専用
-    function refreshSkillCostBadges() {
-        document
-            .querySelectorAll('#askill-stage .askill-canvas .ap-val')
-            .forEach(el => {
-                const id = el.dataset.ap;                    // 例: "s3_2"
-                const cost = (skillCosts?.[id] ?? 0);        // マップから取得
-                el.textContent = cost;
-            });
-    }
-
-    function buildNodes() {
-        const stage = document.getElementById('askill-canvas');
-        if (!stage) return;
-        stage.querySelectorAll('.askill-node').forEach(n => n.remove());
-        for (const [id, p] of Object.entries(POS)) {
-            const n = document.createElement('div');
-            n.className = 'askill-node';
-            if (id == "s1" || id == "s11_1") n.classList.add('big-node');
-            n.dataset.skill = id;
-            n.style.left = p.x + '%';
-            n.style.top = p.y + '%';
-            n.innerHTML =
-                `<div class="ttl">${label(id)}</div>
-<div class="desc" id="desc-${id}">${desc(id)}</div>
-<div class="ap-badge">
-                           <span class="ap-label">AP</span>
-                           <span class="ap-val" data-ap="${id}">0</span>
-</div>`;
-            stage.appendChild(n);
-        }
-        if (window.initAskillPurchase) window.initAskillPurchase();
-        if (window.updateAskillStates) window.updateAskillStates();
-        refreshSkillCostBadges()
-    }
-
-    function drawWires() {
-        const stage = document.getElementById('askill-stage');
-        const wires = document.getElementById('askill-wires');
-        if (!stage || !wires) return;
-        const W = stage.clientWidth || 1, H = stage.clientHeight || 1;
-        wires.setAttribute('width', W);
-        wires.setAttribute('height', H);
-        wires.innerHTML = '';
-
-        const toPX = id => ({ x: POS[id].x / 100 * W, y: POS[id].y / 100 * H });
-
-        for (const [a, b] of EDGES) {
-            const A = toPX(a), B = toPX(b);
-            const midY = (A.y + B.y) / 2;
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', `M ${A.x},${A.y} C ${A.x},${midY} ${B.x},${midY} ${B.x},${B.y}`);
-            path.setAttribute('class', 'askill-wire');
-            wires.appendChild(path);
-            const tri = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const aSz = 6;
-            tri.setAttribute('d', `M ${B.x},${B.y - 1} l ${-aSz / 2},${-aSz} l ${aSz},0 Z`);
-            tri.setAttribute('class', 'askill-wire arrow');
-            wires.appendChild(tri);
-        }
-    }
-
-    function initWhenReady() {
-        const stage = document.getElementById('askill-stage');
-        if (!stage) return;
-        const ready = stage.offsetParent !== null && stage.clientWidth > 0;
-        if (ready) {
-            buildNodes();   // ← 先にキャンバス＆SVGを正しい位置に
-            drawWires();
-            if (window.initAskillPurchase) window.initAskillPurchase();
-            if (window.updateAskillStates) window.updateAskillStates();
-        } else {
-            requestAnimationFrame(initWhenReady);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', initWhenReady);
-    window.addEventListener('resize', () => requestAnimationFrame(drawWires));
-})();
+    ASKILL_POS,
+    ASKILL_EDGES,
+    ASKILL_COSTS,
+    ASKILL_PREREQ,
+});
 
 
 
 /* ========== あんこチャレンジ ========== */
 
-// 1-indexed で使いやすいように先頭はダミー
-// あんこチャレンジ説明
-const CHAL_DEFS = [
-    null,
-    { key: 'ac1', title: '1 スピード命', desc: 'ずんだディメンション2～8を1個までしか購入できないが、ZPSが1.25乗される。', reward: 'ずんだディメンション1の自動購入（高速）を解禁' },
-    { key: 'ac2', title: '2 スロースタート', desc: '全ずんだディメンションの効力が1/16になるが、128秒ごとに2倍になる。', reward: 'ずんだディメンション2の自動購入（高速）を解禁' },
-    { key: 'ac3', title: '3 息切れ体質', desc: 'アセンションするごとにZPSの指数が0.005低下(最低0.01)。', reward: 'ずんだディメンション3の自動購入（高速）を解禁' },
-    { key: 'ac4', title: '4 ブースト不足', desc: 'ブースト1つあたりの効力が30%低下。', reward: 'ずんだディメンション4の自動購入（高速）を解禁' },
-    { key: 'ac5', title: '5 インフレ価格', desc: 'ずんだディメンションの価格が2乗される。', reward: 'ずんだディメンション5の自動購入（高速）を解禁' },
-    { key: 'ac6', title: '6 完全数', desc: 'ずんだディメンション1～6しか購入できない。', reward: 'ずんだディメンション6の自動購入（高速）を解禁' },
-    { key: 'ac7', title: '7 衝動買いに注意', desc: 'ずんだディメンションを1つ購入するごとにZPSの指数が0.005低下(最低0.01)。', reward: 'ずんだディメンション7の自動購入（高速）を解禁' },
-    { key: 'ac8', title: '8 おひとり様1つまで', desc: 'ずんだディメンション1～7が1個までしか購入できない。', reward: 'ずんだディメンション8の自動購入（高速）を解禁' },
-    { key: 'ac9', title: '9 短期決戦', desc: '16秒ごとにブーストの価格が1.3倍に上昇。', reward: 'ずんだブーストの自動購入（高速）を解禁' },
-    { key: 'ac10', title: '10 ランナーズハイ', desc: 'プレステージができなくなるが、アセンションの効力が3乗される。', reward: 'ずんだアセンションの自動化を解禁' },
-    { key: 'ac11', title: '11 3nの法則', desc: 'プレステージした回数が3の倍数でないときZPSが0.5乗される。', reward: 'ずんだプレステージの自動化を解禁' },
-    { key: 'ac12', title: '12 豆マニア', desc: 'ブーストを購入できなくなるが、枝豆/大豆アップグレードを安く購入できる。', reward: '枝豆/大豆アップグレードの自動購入を解禁' },
-    { key: 'ac13', title: '13 シンプルな挑戦', desc: 'あんこディメンションの効果が無効化される。', reward: 'アンコニティの自動化を解禁' },
-];
-
 // あんこチャレンジUI構築
-(function buildAnkoChallenges() {
-    const grid = document.getElementById('ankoChalGrid'); if (!grid) return;
-    grid.innerHTML = '';
-
-    for (let i = 1; i <= 13; i++) {
-        const def = CHAL_DEFS[i] || { title: `Challenge ${i}`, desc: '説明未設定', reward: '—' };
-        const st = (state.anko?.challenges?.[i - 1]) || { cleared: false, bestTime: null };
-
-        const card = document.createElement('div');
-        card.className = 'anko-chal-card';
-        card.innerHTML = `
-                              <div class="anko-chal-header">
-                                <div class="anko-chal-title">${def.title}</div>
-                                <span class="anko-chal-status">${st.cleared ? '✓達成済' : '未達成'}</span>
-                              </div>
-
-                              <div class="anko-chal-desc">${def.desc}</div>
-                              <div class="anko-chal-reward"><span class="pill">報酬</span> ${def.reward}</div>
-
-                              <div class="anko-chal-meta muted" style="font-size:12px;">
-                                最短タイム: ${st.bestTime ?? '—'}
-                              </div>
-
-                              <div class="anko-chal-actions">
-                                <button id="anko-chal-start-${i}" class="btn">開始</button>
-                              </div>
-                            `;
-        grid.appendChild(card);
-
-        const running = state?.anko?.activeChal ?? -1;
-        if (running === i) {
-            card.classList.add('running');
-            card.querySelector('.btn').textContent = '中止';
-        }
-
-        // イベント
-        card.querySelector(`#anko-chal-start-${i}`).addEventListener('click', () => {
-            startAnkoChallenge(i);
-        });
-
-    }
-})();
-
-// あんこチャレンジ実行中のUI更新
-function refreshAnkoChallengeRunningUI() {
-    const running = state?.anko?.activeChal ?? -1;
-    document.querySelectorAll('#ankoChalGrid .anko-chal-card').forEach((card, idx0) => {
-        const idx = idx0 + 1; // 1-based
-        const isRunning = (idx === running);
-        card.classList.toggle('running', isRunning);
-
-        const btn = card.querySelector('.anko-chal-actions .btn');
-        if (btn) btn.textContent = isRunning ? '中止' : '開始';
-    });
-}
-
-// あんこチャレンジ達成後のUI更新
-function refreshAnkoChallengeClearedUI() {
-    document.querySelectorAll('#ankoChalGrid .anko-chal-card').forEach((card, idx0) => {
-        const idx = idx0 + 1;
-        const st = state.anko?.challenges?.[idx - 1];
-        const cleared = !!(st && st.cleared);
-        card.classList.toggle('cleared', cleared);
-
-        // ステータス文言・最短タイムも更新（任意）
-        const status = card.querySelector('.anko-chal-status');
-        if (status) status.textContent = cleared ? '✓達成済' : '未達成';
-
-        const meta = card.querySelector('.anko-chal-meta');
-        if (meta && st) {
-            const best = (st.bestTime ?? '—');
-            meta.innerHTML = `最短タイム: ${best}`;
-        }
-    });
-}
-
-/* ---- 自動化 ---- */
-function buildAutomationUI() {
-    const rootMain = el('autoRows');       // ★ 行コンテナ
-    const rootEdaSoy = el('autoList-edaSoy');
-
-    if (!rootMain || !rootEdaSoy) return;
-
-    // 行だけ消す（ヘッダーは別要素なので消えない）
-    rootMain.textContent = '';
-    rootEdaSoy.textContent = '';
-
-    // ---- ZD1〜8 ----
-    for (let i = 1; i <= 8; i++) {
-        const row = document.createElement('div');
-        row.className = 'auto-row';
-        row.innerHTML = `
-                          <div class="name">ZundaDimension${i}</div>
-                          <span class="pill" id="autoLock-zd${i}">未解禁</span>
-                          <div class="right">
-                            <label style="display:flex;align-items:center;gap:6px;">
-                              <input type="checkbox" id="autoToggle-zd${i}">
-                              <span id="autoText-zd${i}">自動購入(低速)</span>
-                            </label>
-                          </div>`;
-        rootMain.appendChild(row);
-
-        row.querySelector(`#autoToggle-zd${i}`).addEventListener('change', (e) => {
-            const on = !!e.target.checked;
-            state.auto.enabled.zdFast[i - 1] = on;
-            state.auto.enabled.zd[i - 1] = on;
-            markAutomationDirty();
-            save();
-        });
-    }
-
-    // ---- ブースト ----
-    const rowB = document.createElement('div');
-    rowB.className = 'auto-row';
-    rowB.innerHTML = `
-                          <div class="name">ずんだブースト</div>
-                          <span class="pill" id="autoLock-boost">未解禁</span>
-                          <div class="right">
-                            <label style="display:flex;align-items:center;gap:6px;">
-                              <input type="checkbox" id="autoToggle-boost">
-                              <span id="autoText-boost">自動購入(低速)</span>
-                            </label>
-                          </div>`;
-    rootMain.appendChild(rowB);
-
-    rowB.querySelector('#autoToggle-boost').addEventListener('change', (e) => {
-        const on = !!e.target.checked;
-        const fastUnlocked = state.auto?.unlocked?.boostFast;
-
-        if (fastUnlocked) {
-            state.auto.enabled.boostFast = on;
-        } else {
-            state.auto.enabled.boost = on;
-        }
-        markAutomationDirty();
-        save();
-    });
-
-    // ---- アセンション＆プレステージ（ブーストのすぐ下に来る） ----
-    maybeBuildAscAutomationCard(rootMain);
-
-    // ---- 一括トグルボタン ----
-    const btnAllOff = document.getElementById('autoAllOff');
-    const btnAllOn = document.getElementById('autoAllOn');
-    if (btnAllOff) btnAllOff.onclick = () => toggleAllAutomation(false);
-    if (btnAllOn) btnAllOn.onclick = () => toggleAllAutomation(true);
-
-    // ---- 枝豆アップグレード ----
-    const rowE = document.createElement('div');
-    rowE.className = 'auto-row';
-    rowE.innerHTML = `
-                          <div class="name">枝豆アップグレード</div>
-                          <span class="pill" id="autoLock-eda">未解禁</span>
-                          <div class="right" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
-                            <label style="display:flex;align-items:center;gap:6px;">
-                              <input type="checkbox" id="autoToggle-eda-boost">
-                              <span>ブースト購入</span>
-                            </label>
-                            <label style="display:flex;align-items:center;gap:6px;">
-                              <input type="checkbox" id="autoToggle-eda-exp">
-                              <span>指数強化</span>
-                            </label>
-                          </div>`;
-    rootEdaSoy.appendChild(rowE);
-
-    rowE.querySelector('#autoToggle-eda-boost').addEventListener('change', e => {
-        const on = !!e.target.checked;
-        if (!state.auto.enabled.eda) state.auto.enabled.eda = { boost: false, exp: false };
-        state.auto.enabled.eda.boost = on;
-        markAutomationDirty();
-        save();
-    });
-    rowE.querySelector('#autoToggle-eda-exp').addEventListener('change', e => {
-        const on = !!e.target.checked;
-        if (!state.auto.enabled.eda) state.auto.enabled.eda = { boost: false, exp: false };
-        state.auto.enabled.eda.exp = on;
-        markAutomationDirty();
-        save();
-    });
-
-    // ---- 大豆アップグレード ----
-    const rowS = document.createElement('div');
-    rowS.className = 'auto-row';
-    rowS.innerHTML = `
-                          <div class="name">大豆アップグレード</div>
-                          <span class="pill" id="autoLock-soy">未解禁</span>
-                          <div class="right" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start;">
-                            <label style="display:flex;align-items:center;gap:6px;">
-                              <input type="checkbox" id="autoToggle-soy-boostUp">
-                              <span>ブースト強化</span>
-                            </label>
-                            <label style="display:flex;align-items:center;gap:6px;">
-                              <input type="checkbox" id="autoToggle-soy-zd8">
-                              <span>ZD8強化</span>
-                            </label>
-                          </div>`;
-    rootEdaSoy.appendChild(rowS);
-
-    rowS.querySelector('#autoToggle-soy-boostUp').addEventListener('change', e => {
-        const on = !!e.target.checked;
-        if (!state.auto.enabled.soy) state.auto.enabled.soy = { boostUp: false, zd8: false };
-        state.auto.enabled.soy.boostUp = on;
-        markAutomationDirty();
-        save();
-    });
-    rowS.querySelector('#autoToggle-soy-zd8').addEventListener('change', e => {
-        const on = !!e.target.checked;
-        if (!state.auto.enabled.soy) state.auto.enabled.soy = { boostUp: false, zd8: false };
-        state.auto.enabled.soy.zd8 = on;
-        markAutomationDirty();
-        save();
-    });
-}
-
-function refreshAutomationUI() {
-    maybeBuildAscAutomationCard();
-    // ずんだディメンション
-    for (let i = 1; i <= 8; i++) {
-        const lockEl = el(`autoLock-zd${i}`); const unlocked = state.auto.unlocked.zd[i - 1];
-        if (lockEl) { lockEl.textContent = unlocked ? 'アンロック済' : `未解禁（必要: ${fmt(AUTO_THRESH.zd[i - 1])}）`; lockEl.style.color = unlocked ? 'var(--accent)' : 'var(--muted)'; }
-
-        const fastUnlocked = state.auto?.unlocked?.zdFast?.[i - 1] === true;
-        const chk = el(`autoToggle-zd${i}`);
-        if (chk) {
-            chk.disabled = !unlocked;
-            chk.checked = fastUnlocked
-                ? !!state.auto.enabled.zdFast[i - 1]
-                : !!state.auto.enabled.zd[i - 1];
-        }
-
-        const textEl = el(`autoText-zd${i}`);
-        if (textEl) textEl.textContent = fastUnlocked ? '自動購入' : '自動購入(低速)';
-    }
-
-    // ブースト
-    const lB = el('autoLock-boost'); const uB = state.auto.unlocked.boost;
-    if (lB) { lB.textContent = uB ? 'アンロック済' : `未解禁（必要: ${fmt(AUTO_THRESH.boost)}）`; lB.style.color = uB ? 'var(--accent)' : 'var(--muted)'; }
-    const cB = el('autoToggle-boost'); if (cB) { cB.disabled = !uB; cB.checked = !!state.auto.enabled.boost; }
-
-    const fastBoost = state.auto?.unlocked?.boostFast === true;
-    const tB = el('autoText-boost');
-    if (tB) tB.textContent = fastBoost ? '自動購入' : '自動購入(低速)';
-
-    // アセンション（存在する時だけ）
-    const ascUnlocked = !!state.auto?.unlocked?.asc;
-    const ascLock = el('autoLock-asc');
-    if (ascLock) {
-        ascLock.textContent = ascUnlocked ? 'アンロック済' : '未解禁';
-        ascLock.style.color = ascUnlocked ? 'var(--accent)' : 'var(--muted)';
-    }
-    const ascCard = document.getElementById('autoCard-asc');
-    if (ascCard) {
-        const tgl = ascCard.querySelector('#autoToggle-asc');
-        const inp = ascCard.querySelector('#autoAscMul');
-
-        if (tgl) {
-            tgl.checked = !!state.auto?.enabled?.asc;
-            tgl.disabled = false; // 念のため
-        }
-        if (inp) {
-            if (document.activeElement !== inp) {
-                inp.value = state.auto.ascMul ?? '';
-            }
-            inp.disabled = false; // 念のため
-        }
-    }
-
-    // プレステージ（存在する時だけ）
-    const prestUnlocked = !!state.auto?.unlocked?.prest;
-
-    const prestTypes = [
-        {
-            key: 'speed', cardId: 'autoCard-prest-speed',
-            toggleSel: '#autoToggle-prest-speed',
-            inputSel: '#autoPrestMul-speed'
-        },
-        {
-            key: 'power', cardId: 'autoCard-prest-power',
-            toggleSel: '#autoToggle-prest-power',
-            inputSel: '#autoPrestMul-power'
-        },
-        {
-            key: 'cost', cardId: 'autoCard-prest-cost',
-            toggleSel: '#autoToggle-prest-cost',
-            inputSel: '#autoPrestMul-cost'
-        }
-    ];
-
-    const prestEnabled = state.auto?.enabled?.prest || {};
-    const prestMul = state.auto?.prestMul || {};
-
-    prestTypes.forEach(info => {
-        const card = document.getElementById(info.cardId);
-        if (!card) return;
-
-        const tgl = card.querySelector(info.toggleSel);
-        const inp = card.querySelector(info.inputSel);
-
-        if (tgl) {
-            tgl.checked = !!prestEnabled[info.key];
-            tgl.disabled = !prestUnlocked;
-        }
-        if (inp) {
-            if (document.activeElement !== inp) {
-                let v = prestMul[info.key];
-                inp.value = v ?? '';
-            }
-            inp.disabled = !prestUnlocked;
-        }
-    });
-
-
-    // 枝豆アップグレード
-    {
-        const unlocked = !!state.auto?.unlocked?.eda;
-        const lockEl = el('autoLock-eda');
-        if (lockEl) {
-            lockEl.textContent = unlocked ? 'アンロック済' : '未解禁';
-            lockEl.style.color = unlocked ? 'var(--accent)' : 'var(--muted)';
-        }
-
-        const e = state.auto.enabled.eda || { boost: false, exp: false };
-        const tBoost = el('autoToggle-eda-boost');
-        const tExp = el('autoToggle-eda-exp');
-
-        if (tBoost) {
-            tBoost.disabled = !unlocked;
-            tBoost.checked = unlocked && !!e.boost;
-        }
-        if (tExp) {
-            tExp.disabled = !unlocked;
-            tExp.checked = unlocked && !!e.exp;
-        }
-    }
-
-    // 大豆アップグレード
-    {
-        const unlocked = !!state.auto?.unlocked?.soy;
-        const lockEl = el('autoLock-soy');
-        if (lockEl) {
-            lockEl.textContent = unlocked ? 'アンロック済' : '未解禁';
-            lockEl.style.color = unlocked ? 'var(--accent)' : 'var(--muted)';
-        }
-
-        const s = state.auto.enabled.soy || { boostUp: false, zd8: false };
-        const tBoostUp = el('autoToggle-soy-boostUp');
-        const tZd8 = el('autoToggle-soy-zd8');
-
-        if (tBoostUp) {
-            tBoostUp.disabled = !unlocked;
-            tBoostUp.checked = unlocked && !!s.boostUp;
-        }
-        if (tZd8) {
-            tZd8.disabled = !unlocked;
-            tZd8.checked = unlocked && !!s.zd8;
-        }
-    }
-
-    // 枝豆 / 大豆 自動化カードの表示制御
-    {
-        const card = el('autoCard-edaSoy');
-        if (card) {
-            const show = !!state.auto?.unlocked?.eda || !!state.auto?.unlocked?.soy;
-            card.style.display = show ? '' : 'none';
-        }
-    }
-
-}
-
-let automationDirty = true;  // 初期は更新必要
-
-function markAutomationDirty() {
-    automationDirty = true;
-}
-
-function maybeBuildAscAutomationCard(container) {
-    const rootMain = container || el('autoRows');
-    if (!rootMain) return;
-
-    const unlocked = !!state?.auto?.unlocked?.asc;
-    const exists = document.getElementById('autoCard-asc');
-
-    if (!unlocked) { if (exists) exists.remove(); return; }
-    if (exists) return;
-
-    let group = document.getElementById('autoAutomationGroup');
-    if (!group) {
-        group = document.createElement('div');
-        group.className = 'auto-row-group';
-        group.id = 'autoAutomationGroup';
-
-        const boostRow = document.querySelector('#autoList .auto-row:last-of-type');
-        if (boostRow && boostRow.querySelector('#autoToggle-boost')) {
-            boostRow.after(group);
-        } else {
-            rootMain.appendChild(group);
-        }
-    }
-
-    const ascCard = document.createElement('div');
-    ascCard.className = 'auto-card quarter';
-    ascCard.id = 'autoCard-asc';
-    ascCard.innerHTML = `
-                          <div class="head-auto">
-                            <div class="top-row">
-                              <div class="name">アセンション</div>
-                              <div class="tip-wrap">
-                                <div class="tip-btn">?</div>
-                                <div class="tip-box">
-                                  <div style="font-weight:700;margin-bottom:6px;">アセンション自動実行について</div>
-                                  <ul style="margin:0;padding-left:18px;">
-                                    <li>アセンションの実行倍率が現在の倍率より指定倍率高くなるたびに、自動でアセンションを行います。</li>
-                                    <li>例:現在の実行倍率がx6で指定倍率がx4のとき、実行倍率がx24になるタイミングで自動実行する。</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                            <span class="pill" id="autoLock-asc">アンロック済み</span>
-                          </div>
-
-                          <div class="ctrl">
-                            <label style="display:flex;align-items:center;gap:8px;">
-                              <input type="checkbox" id="autoToggle-asc">
-                              <span>自動実行</span>
-                            </label>
-                            <div class="row">
-                              <div>実行倍率</div>
-                              <input type="text"
-                                     id="autoAscMul"
-                                     inputmode="decimal"
-                                     autocomplete="off"
-                                     spellcheck="false">
-                            </div>
-                          </div>
-`;
-    group.appendChild(ascCard);
-
-    // トグル
-    ascCard.querySelector('#autoToggle-asc').addEventListener('change', (e) => {
-        state.auto.enabled.asc = !!e.target.checked;
-        save?.();
-    });
-
-    // 倍率入力（ここで汎用関数を使う）
-    const inp = ascCard.querySelector('#autoAscMul');
-
-    attachNumericInputHandler(
-        inp,
-        () => {
-            // state から文字列を取得
-            let v = state.auto.ascMul;
-            if (v == null) return "4";       // デフォルト値
-            if (typeof v === 'number') return String(v); // 旧セーブ救済
-            return String(v);
-        },
-        (v) => {
-            state.auto.ascMul = v;
-        },
-        {
-            min: new Decimal(1),  // 1 未満禁止（不要なら消してOK）
-            // max: new Decimal('1e1000'), とかも付けられる
-        }
-    );
-
-    // ── プレステージ自動化カード（スピード / パワー / コスト） ──
-    const prestUnlocked = !!state.auto?.unlocked?.prest;
-    const prestTypes = [
-        {
-            key: 'speed', label: 'スピードプレステージ',
-            cardId: 'autoCard-prest-speed',
-            toggleId: 'autoToggle-prest-speed',
-            inputId: 'autoPrestMul-speed'
-        },
-        {
-            key: 'power', label: 'パワープレステージ',
-            cardId: 'autoCard-prest-power',
-            toggleId: 'autoToggle-prest-power',
-            inputId: 'autoPrestMul-power'
-        },
-        {
-            key: 'cost', label: 'コストプレステージ',
-            cardId: 'autoCard-prest-cost',
-            toggleId: 'autoToggle-prest-cost',
-            inputId: 'autoPrestMul-cost'
-        }
-    ];
-
-    prestTypes.forEach(info => {
-        let card = document.getElementById(info.cardId);
-
-        if (!prestUnlocked) {
-            if (card) card.remove();
-            return;
-        }
-
-        if (!card) {
-            card = document.createElement('div');
-            card.className = 'auto-card quarter';
-            card.id = info.cardId;
-
-            if (card.id == 'autoCard-prest-speed') {
-                card.innerHTML = `
-                          <div class="head-auto">
-                            <div class="top-row">
-                              <div class="name">スピードプレステージ</div>
-                              <div class="tip-wrap">
-                                <div class="tip-btn">?</div>
-                                <div class="tip-box">
-                                  <div style="font-weight:700;margin-bottom:6px;">スピードプレステージ自動化について</div>
-                                  <ul style="margin:0;padding-left:18px;">
-                                    <li>スピードプレステージのレベルが現在のレベルより指定レベル高くなるごとに自動でスピードプレステージを行います。</li>
-                                    <li>例:現在レベル15で指定レベル+5のとき、レベル20のタイミングで自動実行する。</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                            <span class="pill" id="autoLock-prest-speed">アンロック済</span>
-                          </div>
-
-                          <div class="ctrl">
-                            <label style="display:flex;align-items:center;gap:8px;">
-                              <input type="checkbox" id="${info.toggleId}">
-                              <span>自動実行</span>
-                            </label>
-                            <div class="row">
-                              <div>実行レベル +</div>
-                              <input type="text"
-                                     id="${info.inputId}"
-                                     inputmode="decimal"
-                                     autocomplete="off"
-                                     spellcheck="false">
-                            </div>
-                          </div>
-`;
-            } else if (card.id == 'autoCard-prest-power') {
-                card.innerHTML = `
-                          <div class="head-auto">
-                            <div class="top-row">
-                              <div class="name">パワープレステージ</div>
-                              <div class="tip-wrap">
-                                <div class="tip-btn">?</div>
-                                <div class="tip-box">
-                                  <div style="font-weight:700;margin-bottom:6px;">パワープレステージ自動化について</div>
-                                  <ul style="margin:0;padding-left:18px;">
-                                    <li>パワープレステージのレベルが現在のレベルより指定レベル高くなるごとに自動でパワープレステージを行います。</li>
-                                    <li>例:現在レベル15で指定レベル+5のとき、レベル20のタイミングで自動実行する。</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                            <span class="pill" id="autoLock-prest-power">アンロック済</span>
-                          </div>
-
-                          <div class="ctrl">
-                            <label style="display:flex;align-items:center;gap:8px;">
-                              <input type="checkbox" id="${info.toggleId}">
-                              <span>自動実行</span>
-                            </label>
-                            <div class="row">
-                              <div>実行レベル +</div>
-                              <input type="text"
-                                     id="${info.inputId}"
-                                     inputmode="decimal"
-                                     autocomplete="off"
-                                     spellcheck="false">
-                            </div>
-                          </div>
-`;
-            } else if (card.id == 'autoCard-prest-cost') {
-                card.innerHTML = `
-                          <div class="head-auto">
-                            <div class="top-row">
-                              <div class="name">コストプレステージ</div>
-                              <div class="tip-wrap">
-                                <div class="tip-btn">?</div>
-                                <div class="tip-box">
-                                  <div style="font-weight:700;margin-bottom:6px;">コストプレステージ自動化について</div>
-                                  <ul style="margin:0;padding-left:18px;">
-                                    <li>コストプレステージのレベルが現在のレベルより指定レベル高くなるごとに自動でコストプレステージを行います。</li>
-                                    <li>例:現在レベル15で指定レベル+5のとき、レベル20のタイミングで自動実行する。</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                            <span class="pill" id="autoLock-prest-cost">アンロック済</span>
-                          </div>
-
-                          <div class="ctrl">
-                            <label style="display:flex;align-items:center;gap:8px;">
-                              <input type="checkbox" id="${info.toggleId}">
-                              <span>自動実行</span>
-                            </label>
-                            <div class="row">
-                              <div>実行レベル +</div>
-                              <input type="text"
-                                     id="${info.inputId}"
-                                     inputmode="decimal"
-                                     autocomplete="off"
-                                     spellcheck="false">
-                            </div>
-                          </div>
-`;
-            }
-            group.appendChild(card);
-
-            // トグル
-            const tgl = card.querySelector('#' + info.toggleId);
-            tgl.addEventListener('change', (e) => {
-                state.auto.enabled.prest = state.auto.enabled.prest || { speed: false, power: false, cost: false };
-                state.auto.enabled.prest[info.key] = !!e.target.checked;
-                save?.();
-            });
-
-            // 倍率入力
-            const inp = card.querySelector('#' + info.inputId);
-            attachNumericInputHandler(
-                inp,
-                () => {
-                    state.auto.prestMul = state.auto.prestMul || {};
-                    let v = state.auto.prestMul[info.key];
-                    if (v == null) return "4";              // デフォルト値
-                    if (typeof v === 'number') return String(v); // 旧セーブ救済
-                    return String(v);
-                },
-                (v) => {
-                    if (!state.auto.prestMul) state.auto.prestMul = {};
-                    state.auto.prestMul[info.key] = v;
-                },
-                { min: new Decimal(1) }
-            );
-        }
-    });
-}
-
-/*
-// ずんだもん表示
-function showZundamon() {
-    const avatar = document.getElementById("char-avatar");
-    if (avatar) {
-        avatar.style.backgroundImage = "url('assets/characters/zundamon/zundamon-normal.webp')";
-    }
-}
-
-// ページ読み込み時にずんだもん表示
-document.addEventListener("DOMContentLoaded", showZundamon);
-*/
-
-document.addEventListener('DOMContentLoaded', () => {
-    Bubble.bindClick();
-    Bubble.showNextZundaLine(); // 最初の一言もランダム
+const ankoChalUI = initAnkoChallengeUI({
+    getState: () => state,
+    ACHAL_DEFS,
+    startAnkoChallenge: () => { },
 });
 
-// 全体UI更新
-function updateUI() {
-    const elZ = el('zunda'), elP = el('pps'), elE = el('elapsed');
-    if (elZ) elZ.textContent = fmt(state.zunda);
-    if (elP) elP.textContent = fmt(effectiveZps());
-    if (elE) elE.textContent = state.runSecondsAnko.toFixed(1) + 's';
+/* ---- 自動化 ---- */
 
-    for (let i = 1; i <= 8; i++) {
-        const owned = el(`owned-zd${i}`), gen = el(`gen-zd${i}`);
-        if (owned) owned.textContent = softFmt(tiers[i].bought);
-        if (gen && i <= 7) gen.textContent = softFmt(tiers[i].generated);
-    }
-    refreshCosts();
-    refreshBoostAndAsc();
-    updateVisibility();
-    refreshPrestigeUIWrapper();
-    refreshEdamameSoyUI();
-    refreshEdamameSoyButtons();
-    setEdaButtonState();
-    refreshAnkoAP();
-    refreshAnkoDimsUI();
-    updateAskillDescriptions();
+const automationLogic = createAutomationLogic({
+    getState: () => state,
+    save,
+    onAfterToggle: () => {
+        automationUI.markDirty();
+        automationUI.refreshIfDirty(); // 即反映したいなら
+    },
+});
 
-    if (automationDirty) {
-        refreshAutomationUI();
-        automationDirty = false;
-    }
+const automationCardsUI = createAutomationCardsUI({
+    getState: () => state,
+    el,
+    save,
+    attachNumericInputHandler,
+    Decimal,
+});
 
-    const apEl2 = document.getElementById('apAmount');
-    if (apEl2) apEl2.textContent = state.ap.toString();
-    const bar = document.getElementById('anconityBar');
-    if (bar) bar.style.display = state.anconityReady ? 'block' : 'none';
+const automationUI = initAutomationUI({
+    getState: () => state,
+    el,
+    fmt,
+    AUTO_THRESH_BY_ZUNDA,
+    maybeBuildAscAutomationCard: automationCardsUI.maybeBuildAscAutomationCard, // ★UI側
+    toggleAllAutomation: automationLogic.toggleAllAutomation,                  // ★logic側
+    save,
+});
+
+function markAutomationDirty() {
+    automationUI.markDirty();
 }
+
+const hud = createHUD({
+    getState: () => state,
+    el,
+    fmt,
+    effectiveZps,
+});
+
+const miscBars = createMiscBars({
+    getState: () => state,
+});
+
+const zundaDimsUI = createZundaDimsUI({
+    el,
+    softFmt,
+    getTiers: () => tiers,
+});
+
+function updateAutomationIfDirty() {
+    automationUI.refreshIfDirty();
+}
+
+const updateUI = createUpdateUI({
+    updateHUD: hud.updateHUD,
+    updateZundaDimsSummary: zundaDimsUI.updateZundaDimsSummary,
+
+    refreshCosts: costsUI.refreshCosts,
+    refreshBoostAndAsc: boostAscUI.refreshBoostAndAsc,
+    updateVisibility: visibilityUI.updateVisibility,
+
+    refreshPrestigeUIWrapper,
+
+    refreshEdamameSoyUI,
+    refreshEdamameSoyButtons,
+    setEdaButtonState,
+
+    refreshAnkoAP,
+    refreshAnkoDimsUI,
+
+    askill, // すでに askill を init してる前提
+
+    updateAutomationIfDirty, // ここは automationUI.refreshIfDirty() を包むのがおすすめ
+    updateMiscBars: miscBars.updateMiscBars,
+});
+
+const ankoChalLogic = createAnkoChallengeLogic({
+    getState: () => state,
+    D,
+    doAnconityReset,
+    isChal,
+    grantAnkoChallengeReward,
+
+    recomputeAllSkillEffects,
+    refreshBoostAndAsc: boostAscUI.refreshBoostAndAsc,
+    refreshAscUI: boostAscUI.refreshAscUI,
+    refreshCostMultipliers,
+    updateUI,
+    save,
+
+    onUIUpdate: () => ankoChalUI.refreshAll(),
+});
+
+// UIの開始ボタンがロジックを呼ぶように差し替え
+ankoChalUI.setStartHandler(ankoChalLogic.startAnkoChallenge);
 
 
 /***** 7. EVENTS *************************************************************/
@@ -4001,6 +2567,18 @@ window.addEventListener('focus', () => {
     updateUI();
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+    Bubble.init();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    initTabs();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    ankoChalUI.init();
+});
+
 
 /***** 8. LOOP ***************************************************************/
 
@@ -4019,21 +2597,19 @@ function tickStep(dt, { skipUI }) {
 
     runFastAutomation();
 
-    const ef = getEffects();          // ★ここで1回
-    const bMult = getBoostMult();
-    const aMult = getAscEffective();
-    const zdMultAP = getZdMultFromUnspentAp();
-    const zd8m = getZd8Mult();
-    const ankoM = getAnkoZundaMult();
+    const ef = getEffects();
+
+    const mults = calcTickMults(state, {
+        getBoostMult,
+        getAscEffective,
+        getZdMultFromUnspentAp,
+        getZd8Mult,
+        getAnkoZundaMult,
+    }, ef);
 
     // ZUNDA: 上位→下位を生成
-    for (let i = 8; i >= 2; i--) {
-        const p = tiers[i]; const t = tiers[i - 1];
-        let rate = D(p.bought || 0).mul(p.generated || 1).mul(p.prodPerSec || 0);
-        let rDec = rate.mul(bMult).mul(aMult).mul(ankoM).mul(zdMultAP).mul(ef.zdEffMul || 1);
-        if (i === 8) rDec = rDec.mul(zd8m);
-        if (rDec.gt(0)) t.generated = t.generated.add(rDec.mul(dt));
-    }
+    tickZunda(state, dt, tiers, mults.zunda);
+    markPrestigeDirty();
 
     state.zunda = state.zunda.add(effectiveZps().mul(dt));
 
@@ -4052,21 +2628,7 @@ function tickStep(dt, { skipUI }) {
     }
 
     // ANKO
-    for (let i = 8; i >= 2; i--) {
-        const self = state.anko.dims[i];
-        const lower = state.anko.dims[i - 1];
-        const effA = self.bought.mul(self.generated);
-        let rateA = effA.mul(self.prodPerSec);
-        if (i === 2) rateA = rateA.mul(ef.ad2Mul || 1);
-        lower.generated = lower.generated.add(rateA.mul(dt));
-    }
-
-    {
-        const ad1 = state.anko.dims[1];
-        const eff1 = ad1.bought.mul(ad1.generated);
-        const rateA1 = eff1.mul(ad1.prodPerSec).mul(ef.ad1Mul || 1);
-        if (rateA1.gt(0)) state.anko.amount = D(state.anko.amount || 0).add(rateA1.mul(dt));
-    }
+    tickAnko(state, dt, mults.anko);
 
     if (state.zunda.gt(state.maxZunda)) {
         state.maxZunda = Decimal.max(state.maxZunda, state.zunda);
@@ -4082,15 +2644,13 @@ function tickStep(dt, { skipUI }) {
 /* ---- ループ ---- */
 let loopId = null;
 let lastFrame = 0;
-const TARGET_FPS = 60;                      // FPS設定
-const FRAME_INTERVAL = 1000 / TARGET_FPS;
 
 function start() {
     if (loopId) return;
     state.lastTime = performance.now();
     const loop = () => {
         try {
-            if (nowMs() - lastFrame >= FRAME_INTERVAL) {
+            if (nowMs() - lastFrame >= FRAME_INTERVAL_MS) {
                 lastFrame = nowMs();
                 tick();
             }
@@ -4116,7 +2676,7 @@ function applyOfflineProgress(sec) {
 
 function bootstrap() {
     /* ---- 初期化 ---- */
-    function refreshCostsInit() { refreshCostMultipliers(); refreshCosts(); }
+    function refreshCostsInit() { refreshCostMultipliers(); costsUI.refreshCosts(); }
     function setInitialEdaButton() { setEdaButtonState(); }
     build();
     load();
@@ -4125,7 +2685,7 @@ function bootstrap() {
     setEdaButtonState();
     recomputeAllSkillEffects();
     applyOfflineFromLastActive({ showToast: true });
-    refreshAnkoChallengeRunningUI();
+    ankoChalUI.refreshAnkoChallengeRunningUI();
     updateUI();
     start();
     const ankoBtn = document.getElementById('doAnconity');

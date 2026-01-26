@@ -1,0 +1,1 @@
+export const ZUNDA_AUTO_DELAY_MS = 60_000; // 60秒ごとに切り替え
