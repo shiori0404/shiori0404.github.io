@@ -48,7 +48,7 @@ export const ZUNDA_LINES_BY_PROGRESS = {
     ],
 
     4: [
-        { text: "ずんだディメンションがずんだディメンションを生産するのだ", sprite: "hand" },
+        { text: "ずんだディメンション2がずんだディメンション1を生産するのだ", sprite: "hand" },
         { text: "この調子でどんどんずんだを増やすのだ", sprite: "hand" },
     ],
 
