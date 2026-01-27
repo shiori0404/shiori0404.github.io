@@ -1,0 +1,1930 @@
+<!DOCTYPE html><html lang="ja"><head><script type="importmap">{"imports":{"22RDX":"/zundamon-tere.7e4b4aa7.webp","2sAIR":"/zundamon-guruguru.4cff81c9.webp","2tHoN":"/zundamon-yubi.ff08b497.webp","3QjJf":"/zundamon-uwame2.0978b441.webp","3sXkD":"/zundamon-koshi2.4e985c1b.webp","4Ah3r":"/zundamon-bikkuri2.c9a92907.webp","6I0PV":"/zundamon-uwame.96f7118b.webp","9p1YV":"/zundamon-oko.a7853a96.webp","a0XxC":"/zundamon-uwame3.830d231d.webp","bygAp":"/zundamon-shirome.153ba583.webp","cBdew":"/zundamon-banzai.1e03b569.webp","cM395":"/zundamon-banzai2.1c9fa6bd.webp","cMxkh":"/zundamon-bikkuri.e7a7e95c.webp","dBgg3":"/zundamon-koshi.8e140a3a.webp","gQuSk":"/zundamon-guruguru2.7e37e9be.webp","im7vT":"/zundamon-mufufu.ca8178a3.webp","kgEGR":"/zundamon-normal.4f7d8dc8.webp","lue4I":"/zundamon-hand.8d8bea9c.webp"}}</script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ZundaDimensions v0.10 — Tabs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700&amp;display=swap" rel="stylesheet">
+    <style>:root {
+  --app-base-width: 1000;
+  --tabs-width: 160;
+  --shell-gap: 16;
+  --app-scale: 1;
+  --app-width: 1440px;
+  --bg: #0b1115;
+  --panel: #121a20;
+  --accent: #6ee787;
+  --text: #e8f5ee;
+  --muted: #94a3b8;
+  --card: #0f161b;
+  --border: #1f2a33;
+  --danger: #ff6b6b;
+  --btn-col-w: 380px;
+  --btn-w: 180px;
+  --btn-gap: 8px;
+  --cost-ch: 12ch;
+  --tooltip-bg: #0d1318;
+  --tooltip-border: #20313d;
+  --tab-w: 160px;
+  --tab-gap: 10px;
+  --tab-active: #163523;
+  --char-w: clamp(160px, 22vw, 280px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(1440px 2400px at 20% 0%, #0e171c 0%, var(--bg) 60%);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 24px;
+  font-family: Inter, sans-serif;
+  overflow-x: hidden;
+}
+
+.app-layout {
+  grid-template-columns: var(--tab-w) minmax(0, 1fr) var(--char-w, 280px);
+  align-items: start;
+  gap: 16px;
+  max-width: 1440px;
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+}
+
+.app-inner {
+  width: calc(var(--app-base-width) * var(--app-scale) * 1px);
+  min-width: 0;
+}
+
+.app-scale {
+  width: calc(var(--app-base-width) * 1px);
+  transform: scale(var(--app-scale));
+  transform-origin: 0 0;
+}
+
+.app {
+  width: 100%;
+}
+
+.char-slot {
+  width: var(--char-w, 280px);
+  will-change: transform;
+  backface-visibility: hidden;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-self: start;
+  align-items: center;
+  max-width: 100%;
+  height: calc(100vh - 24px);
+  padding-bottom: 12px;
+  display: flex;
+  position: sticky;
+  top: 12px;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+.char-stage {
+  flex: 1;
+  justify-content: center;
+  align-items: flex-end;
+  width: 100%;
+  display: flex;
+  position: relative;
+}
+
+.bubble {
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 10;
+  width: min(250px, 100%);
+  position: absolute;
+  top: 130px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bubble.normal-cursor {
+  cursor: default;
+}
+
+.bubble-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.bubble-text {
+  text-align: center;
+  color: #222;
+  text-shadow: 0 1px 2px #00000040;
+  white-space: pre-wrap;
+  user-select: none;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-family: "M PLUS Rounded 1c", Hiragino Maru Gothic ProN, Hiragino Sans, Noto Sans JP, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+  display: flex;
+  position: absolute;
+  inset: 0 0 20%;
+}
+
+.bubble-next {
+  opacity: .9;
+  color: #666;
+  pointer-events: none;
+  font-size: 18px;
+  line-height: 1;
+  animation: .9s ease-in-out infinite bubble-bounce;
+  position: absolute;
+  bottom: 32%;
+  right: 10%;
+}
+
+.bubble-next.is-hidden {
+  display: none;
+}
+
+@keyframes bubble-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+header {
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.head2 {
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  display: flex;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  text-align: left;
+  font-family: Inter, sans-serif;
+  display: inline-block;
+}
+
+.head-auto {
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  display: flex;
+}
+
+.head-auto .top-row {
+  align-items: center;
+  gap: 6px;
+  display: flex;
+}
+
+.head-auto .top-row .tip-wrap {
+  margin-left: auto;
+}
+
+.title-line {
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+}
+
+.title-line .name {
+  font-size: 1.05em;
+  font-weight: bold;
+}
+
+.title {
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  display: flex;
+}
+
+.logo {
+  background: conic-gradient(from 90deg, #b6f3c4, #6ee787, #46ca6a, #b6f3c4);
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  box-shadow: inset 0 0 24px #1d3d29, 0 0 24px #0c2e17;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.theme-anko .pill {
+  border: 1px solid #a97c4b;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 700;
+  color: #ffe7cf !important;
+  background: #503621 !important;
+}
+
+.theme-anko .value-green, .theme-anko .text-green {
+  color: #ffe7cf !important;
+}
+
+.shell {
+  display: block;
+}
+
+.shell > div, .app-inner, .app-scale, .app, .shell, .shell > div {
+  min-width: 0;
+}
+
+#char-avatar {
+  width: 150%;
+  max-width: 150%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  transform: translateY(40px);
+}
+
+#char-avatar-img {
+  object-fit: contain;
+  object-position: center center;
+  width: 125%;
+  height: 125%;
+  display: block;
+  transform: translateX(-40px);
+}
+
+.tabs {
+  gap: var(--tab-gap);
+  flex-direction: column;
+  align-self: start;
+  display: flex;
+  position: sticky;
+  top: 12px;
+}
+
+.tab-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+  transition: transform .15s, filter .15s, background .15s;
+}
+
+.tab-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.tab-btn.active {
+  background: var(--tab-active);
+  border-color: #1f3b2d;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  position: relative;
+  box-shadow: 0 6px 20px #00000040;
+}
+
+.readout {
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.readout .left {
+  align-items: center;
+  gap: 14px;
+  display: flex;
+}
+
+.zunda-badge {
+  background: radial-gradient(circle at 30% 30%, #b6f3c4, #6ee787 60%, #2a7f49);
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  box-shadow: 0 0 24px #0c2e17;
+}
+
+.z-amount {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  text-align: left;
+  width: 7.5ch;
+  font-family: Inter, sans-serif;
+  font-size: 34px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.z-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.producers {
+  flex-direction: column;
+  gap: 12px;
+  display: flex;
+}
+
+.row {
+  grid-template-columns: 1.2fr 1fr var(--btn-col-w);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  display: grid;
+}
+
+.name {
+  font-weight: 800;
+}
+
+.pill {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  background: #6ee7871f;
+  border: 1px solid #6ee78740;
+  border-radius: 999px;
+  align-self: flex-start;
+  align-items: center;
+  gap: .35rem;
+  padding: 4px 8px;
+  font-weight: 700;
+  display: inline-flex;
+}
+
+.counts {
+  flex-wrap: wrap;
+  justify-self: start;
+  align-items: center;
+  gap: 10px;
+  margin-left: 0;
+  display: flex;
+}
+
+.theme-anko .counts {
+  flex-wrap: wrap;
+  justify-self: start;
+  align-items: center;
+  gap: 10px;
+  margin-left: -12px;
+  display: flex;
+}
+
+.counts .pill {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btns {
+  gap: var(--btn-gap);
+  width: var(--btn-col-w);
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  display: flex;
+  overflow-x: hidden;
+}
+
+.btns button {
+  flex: 0 0 var(--btn-w);
+  max-width: var(--btn-w);
+  white-space: nowrap;
+  text-overflow: clip;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  display: flex;
+  overflow: hidden;
+}
+
+button {
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  background: #10241a;
+  border: 1px solid #1f3b2d;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  transition: transform .15s, opacity .15s, filter .15s, background .15s;
+}
+
+button:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.buy {
+  background: linear-gradient(#163523, #0f2419);
+  border-color: #1f3b2d;
+}
+
+.danger {
+  background: #2b1212;
+  border-color: #462121;
+}
+
+.cost {
+  flex: 0 0 var(--cost-ch);
+  width: var(--cost-ch);
+  text-align: right;
+  text-overflow: clip;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.label {
+  white-space: nowrap;
+  flex: auto;
+  min-width: 0;
+}
+
+@media (width <= 720px) {
+  :root {
+    --btn-col-w: 320px;
+    --btn-w: 150px;
+    --cost-ch: 10ch;
+    --tab-w: 120px;
+  }
+}
+
+@media (width <= 560px) {
+  :root {
+    --btn-col-w: 300px;
+    --btn-w: 140px;
+    --cost-ch: 9ch;
+  }
+
+  .row {
+    grid-template-columns: 1fr .9fr var(--btn-col-w);
+  }
+}
+
+.footer {
+  color: var(--muted);
+  justify-content: space-between;
+  font-size: 12px;
+  display: flex;
+}
+
+.sep {
+  opacity: .25;
+}
+
+.boost-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tip-wrap {
+  margin-left: auto;
+  position: relative;
+}
+
+.tip-btn {
+  border: 1px solid var(--tooltip-border);
+  color: #bfe9c9;
+  cursor: default;
+  user-select: none;
+  background: #0e1b21;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  width: 22px;
+  height: 22px;
+  font-weight: 800;
+  display: inline-flex;
+}
+
+.tip-box {
+  background: var(--tooltip-bg);
+  color: var(--text);
+  border: 1px solid var(--tooltip-border);
+  opacity: 0;
+  pointer-events: none;
+  border-radius: 10px;
+  width: min(360px, 80vw);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  transition: opacity .12s ease-out;
+  position: absolute;
+  top: -6px;
+  right: 26px;
+  transform: translateY(-100%);
+  box-shadow: 0 6px 18px #00000059;
+}
+
+.tip-wrap:hover .tip-box {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: .35s ease-out both fadeIn;
+}
+
+.meta-panels {
+  grid-template-columns: 1fr 2fr;
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+  gap: 16px;
+  display: grid;
+}
+
+#ascPanel, #prestigePanel {
+  flex-direction: column;
+  height: 100%;
+  display: flex;
+}
+
+#doAscend {
+  white-space: normal;
+  padding: 12px 14px;
+  line-height: 1.25;
+}
+
+#doAscend .sub {
+  opacity: .9;
+  font-size: .95em;
+}
+
+@media (width <= 880px) {
+  .meta-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn-speed {
+  background: #103243;
+  border-color: #1e4a5e;
+}
+
+.btn-power {
+  background: #3a1418;
+  border-color: #5a1f26;
+}
+
+.btn-cost {
+  background: #3d3412;
+  border-color: #5d4e18;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.producers-head {
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+  display: flex;
+}
+
+#buyAllMax {
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 8px;
+  padding: 12px;
+  display: flex;
+}
+
+#boostPanel .buy {
+  padding: 8px 10px;
+}
+
+#boostPanel .pill {
+  padding: 4px 8px;
+}
+
+.boost-left {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  display: flex;
+}
+
+.buy.slim {
+  padding: 8px 10px;
+}
+
+.panel-row {
+  grid-template-columns: 1fr 220px;
+  align-items: stretch;
+  gap: 12px;
+  display: grid;
+}
+
+@media (width <= 720px) {
+  .panel-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.auto-head {
+  gap: 8px;
+  margin-left: auto;
+  display: flex;
+}
+
+.auto-mini {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.auto-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  display: flex;
+}
+
+.auto-row .name {
+  min-width: 160px;
+  font-weight: 700;
+}
+
+.auto-row .pill {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.auto-row .right {
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  display: flex;
+}
+
+.auto-row-group {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  display: flex;
+}
+
+.auto-row-group .auto-card {
+  flex: auto;
+}
+
+.auto-row-group .auto-card.quarter {
+  border: 1px solid var(--border);
+  background: var(--panel, #1f1f1f);
+  border-radius: 10px;
+  flex: 0 0 25%;
+  min-width: 0;
+  max-width: 23.9%;
+  padding: 10px 12px;
+  position: relative;
+}
+
+.auto-card.quarter, .auto-card.quarter * {
+  pointer-events: auto;
+}
+
+.auto-grid {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  display: flex;
+}
+
+.auto-card {
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.auto-card.full {
+  flex: 100%;
+  max-width: 100%;
+}
+
+.auto-card.half {
+  flex: calc(50% - 12px);
+  max-width: calc(50% - 12px);
+}
+
+.auto-card .head {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  display: flex;
+}
+
+.auto-card .pill {
+  font-size: 12px;
+}
+
+.auto-card .ctrl {
+  gap: 8px;
+  display: grid;
+}
+
+.auto-card .ctrl .row {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  display: grid;
+}
+
+.auto-card input[type="text"], .auto-card input[type="number"] {
+  border: 1px solid var(--border);
+  background: var(--bg, #121212);
+  width: 100%;
+  color: var(--fg, #eee);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.auto-card-title {
+  opacity: .8;
+  margin-bottom: 8px;
+  font-size: .9rem;
+}
+
+.subtabs {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 10px;
+  display: grid;
+}
+
+.subtab-btn {
+  text-align: center;
+  width: 100%;
+  color: var(--text);
+  cursor: pointer;
+  background: #0e1a14;
+  border: 1px solid #1f3b2d;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-weight: 800;
+  transition: transform .12s, filter .12s, background .12s;
+}
+
+.subtab-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.subtab-btn.active {
+  background: #163523;
+  border-color: #1f3b2d;
+}
+
+.subtab-btn.disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.resource-header {
+  text-align: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  display: flex;
+}
+
+.resource-header .res-name {
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+  font-weight: 800;
+  display: flex;
+}
+
+.resource-header .res-amount {
+  color: var(--accent);
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.resource-header .res-sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.buy-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  display: flex;
+}
+
+.buy-row button {
+  flex: 1;
+  min-width: 120px;
+}
+
+.row {
+  grid-template-columns: .9fr 1.6fr var(--btn-col-w);
+}
+
+.counts {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.counts .pill {
+  white-space: nowrap;
+}
+
+.name {
+  text-overflow: ellipsis;
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (width <= 560px) {
+  .row {
+    grid-template-columns: .8fr 1.2fr var(--btn-col-w);
+  }
+}
+
+#anconityBar {
+  text-align: center;
+  width: 100%;
+  margin: 40px 0;
+  display: none;
+  overflow: visible;
+}
+
+.anko-btn {
+  color: #fff9f3;
+  cursor: pointer;
+  z-index: 3;
+  background: linear-gradient(135deg, #5e3b20, #8c5c33);
+  border: 3px solid #e0c097;
+  border-radius: 28px;
+  padding: 40px 80px;
+  font-size: 40px;
+  font-weight: 900;
+  transition: transform .2s, box-shadow .2s, background .3s;
+  display: inline-block;
+  position: relative;
+  overflow: visible;
+  box-shadow: 0 0 40px #783c1466;
+}
+
+.anko-btn:hover {
+  background: linear-gradient(135deg, #7b4b28, #a26a3c);
+  transform: scale(1.07);
+  box-shadow: 0 0 60px #b4643299;
+}
+
+.anko-btn[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.anko-shake {
+  animation: .6s ease-in-out ankoShake;
+}
+
+@keyframes ankoShake {
+  0%, 100% {
+    transform: translateX(0)rotate(0);
+  }
+
+  20% {
+    transform: translateX(-8px)rotate(-1deg);
+  }
+
+  40% {
+    transform: translateX(8px)rotate(1deg);
+  }
+
+  60% {
+    transform: translateX(-6px)rotate(-1deg);
+  }
+
+  80% {
+    transform: translateX(6px)rotate(1deg);
+  }
+}
+
+.anko-particle {
+  z-index: 4;
+  pointer-events: none;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  animation: 1s ease-out forwards ankoParticle;
+  position: absolute;
+}
+
+@keyframes ankoParticle {
+  0% {
+    opacity: 1;
+    transform: translate(0)scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 0), var(--dy, -100px)) scale(.5);
+  }
+}
+
+.theme-anko {
+  color: #f9ede3;
+  border: 2px solid #9d7a50;
+  box-shadow: inset 0 0 20px #3c281480;
+  background: linear-gradient(#3e2a1f, #24150f) !important;
+}
+
+.theme-anko .panel {
+  color: #ffe7cf !important;
+  background: #2f2016 !important;
+  border-color: #5e3b20 !important;
+}
+
+#view-anko.theme-anko .panel.anko-readout, .theme-anko #view-anko .panel.anko-readout, .theme-anko .panel.anko-readout {
+  z-index: 9;
+  position: sticky;
+  top: 48px;
+  color: #ffe7cf !important;
+  background: #2f2016 !important;
+  border: 1px solid #5e3b20 !important;
+  border-radius: 16px !important;
+}
+
+.theme-anko .panel.anko-readout:before, .theme-anko .panel.anko-readout:after {
+  content: none !important;
+  box-shadow: none !important;
+  background: none !important;
+}
+
+.theme-anko .panel.anko-readout > * {
+  background: none !important;
+}
+
+.theme-anko .anko-subtabs {
+  z-index: 10;
+  background: linear-gradient(#3e2a1f, #2a1b13);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding-bottom: 8px;
+  display: grid;
+  position: sticky;
+  top: 0;
+}
+
+.theme-anko .anko-subtab-btn {
+  text-align: center;
+  color: #ffeede;
+  cursor: pointer;
+  background: #4b3324;
+  border: 1px solid #9d7a50;
+  border-radius: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font-weight: 800;
+  transition: all .12s;
+}
+
+.theme-anko .anko-subtab-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.theme-anko .anko-subtab-btn.active {
+  background: #6a472f;
+  border-color: #c79f6a;
+}
+
+.theme-anko .anko-readout-left {
+  align-items: center;
+  gap: 14px;
+  display: flex;
+}
+
+.theme-anko .anko-ap-label {
+  color: #ffe7cf;
+  font-weight: 800;
+}
+
+.theme-anko .anko-ap-amount {
+  color: #ffd8a0;
+  text-shadow: 0 0 8px #c88c5059;
+  font-size: 40px;
+  font-weight: 900;
+}
+
+.theme-anko .anko-ap-sub {
+  color: #d7c5b1;
+  font-size: 12px;
+}
+
+.theme-anko .anko-subview {
+  margin-top: 10px;
+  display: none;
+}
+
+.theme-anko .anko-subview.active {
+  display: block;
+}
+
+.theme-anko .anko-dim-list {
+  flex-direction: column;
+  gap: 10px;
+  display: flex;
+}
+
+.theme-anko .anko-dim-row {
+  grid-template-columns: .9fr 1.6fr var(--btn-col-w);
+  background: #2f2016;
+  border: 1px solid #5e3b20;
+  border-radius: 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  display: grid;
+}
+
+.theme-anko .anko-dim-row .name {
+  color: #ffe7cf;
+  font-weight: 800;
+}
+
+.theme-anko .anko-dim-row .pill {
+  color: #ffe7cf !important;
+  background: #503621 !important;
+  border-color: #a97c4b !important;
+}
+
+.theme-anko .anko-dim-row .counts {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  margin-left: -12px;
+  display: flex;
+}
+
+.theme-anko .anko-dim-row > :last-child {
+  grid-template-columns: 1fr 1fr;
+  place-self: center stretch;
+  gap: 8px;
+  width: 100%;
+  display: grid;
+}
+
+.theme-anko .anko-dim-row button[id$="-buy1"], .theme-anko .anko-dim-row button[id$="-buyMax"], .theme-anko .anko-dim-row .buy-btn {
+  white-space: nowrap;
+  box-sizing: border-box;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  display: inline-flex;
+}
+
+.theme-anko .anko-dim-row button {
+  justify-self: stretch;
+}
+
+.theme-anko .buy {
+  color: #ffe7cf;
+  background: linear-gradient(#6a472f, #3e2a1f);
+  border-color: #5e3b20;
+  transition: filter .1s, transform .1s;
+  box-shadow: inset 0 0 4px #fff0c81a;
+}
+
+.theme-anko .buy:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.theme-anko .buy:active {
+  filter: brightness(.9);
+  transform: translateY(0);
+}
+
+#askill-stage {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  height: 1240px;
+  padding: 0;
+  position: relative;
+  overflow: auto;
+}
+
+#askill-stage .askill-canvas {
+  width: 100%;
+  height: var(--askill-canvas-h, 1240px);
+  position: relative;
+}
+
+#askill-stage .askill-canvas .askill-wires {
+  pointer-events: none;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: visible !important;
+}
+
+#askill-stage .askill-canvas .askill-node {
+  cursor: default;
+  z-index: 2;
+  background-color: #362919;
+  border: 3px solid #7d582c;
+  transition: border-color .15s, filter .15s, background-color .15s;
+  position: absolute;
+}
+
+#askill-stage .askill-canvas .askill-node.ready {
+  filter: brightness(1.12);
+  cursor: pointer;
+  background-color: #362919;
+  border-color: #ffd704;
+  box-shadow: inset 0 0 0 2px #ffd70040;
+}
+
+#askill-stage .askill-canvas .askill-node.bought {
+  filter: brightness(1.15);
+  cursor: default;
+  box-shadow: none;
+  pointer-events: none;
+  background-color: #4d3c28;
+  border-color: #7d582c;
+}
+
+#askill-grid {
+  z-index: 1;
+  position: relative;
+}
+
+#skillLinks {
+  pointer-events: none;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+.askill-node {
+  z-index: 1;
+  position: relative;
+}
+
+.askill-grid {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 140px;
+  gap: 28px 24px;
+  padding: 14px 16px 24px;
+  display: grid;
+}
+
+.skill-node {
+  text-align: left;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+  padding: 16px 92px 18px 16px;
+  line-height: 1.25;
+  display: flex;
+  position: absolute !important;
+}
+
+.skill-node .title {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.askill-node > .ap-badge {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  z-index: 2;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  border-radius: 8px !important;
+  width: auto !important;
+  height: 32px !important;
+}
+
+.ap-badge .ap-label {
+  opacity: .9;
+}
+
+.ap-badge .ap-val {
+  letter-spacing: .2px;
+  font-weight: 700;
+}
+
+.askill-help {
+  z-index: 6;
+  color: #ffd7a3;
+  cursor: pointer;
+  background: #3d2f29;
+  border: 1px solid #745742;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  font-weight: 900;
+  display: flex;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.askill-tooltip {
+  z-index: 6;
+  color: #f1e5d6;
+  background: #3a2e28;
+  border: 1px solid #6f5240;
+  border-radius: 10px;
+  min-width: 260px;
+  max-width: 320px;
+  padding: 10px;
+  display: none;
+  position: absolute;
+  top: 50px;
+  right: 14px;
+  box-shadow: 0 8px 24px #00000059;
+}
+
+.askill-tooltip .tt-title {
+  color: #ffd7a3;
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+
+.askill-help:hover + .askill-tooltip {
+  display: block;
+}
+
+@media (width <= 860px) {
+  .askill-grid {
+    grid-auto-rows: 120px;
+  }
+
+  .askill-node {
+    aspect-ratio: 4.6 / 3;
+  }
+}
+
+@media (width <= 560px) {
+  .askill-grid {
+    grid-auto-rows: 110px;
+  }
+
+  .askill-node {
+    aspect-ratio: 4.2 / 3;
+  }
+}
+
+.anko-chal-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  display: grid;
+}
+
+@media (width <= 720px) {
+  .anko-chal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.anko-chal-card {
+  background: #2f2016;
+  border: 1px solid #5e3b20;
+  border-radius: 12px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  display: flex;
+}
+
+.anko-chal-card.running {
+  --run-light: #6d4c35;
+  --run-mid: #513827;
+  --run-dark: #211710;
+  background: radial-gradient(circle at 50% 50%, var(--run-dark) 0%, color-mix(in oklab, var(--run-dark), var(--run-mid) 50%) 50%, var(--run-mid) 80%, var(--run-light) 100%);
+}
+
+.anko-chal-card.cleared {
+  background: #6d4c35;
+}
+
+.anko-chal-header {
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+}
+
+.anko-chal-title {
+  color: #ffe7cf;
+  font-weight: 800;
+}
+
+.anko-chal-status {
+  color: #ffeede;
+  background: #503621;
+  border: 1px solid #a97c4b;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.anko-chal-desc {
+  color: #e7d7c4;
+  font-size: 13px;
+}
+
+.anko-chal-actions {
+  justify-content: flex-end;
+  gap: 8px;
+  display: flex;
+}
+
+.anko-chal-actions button {
+  color: #ffeede;
+  background: #503621;
+  border: 1px solid #a97c4b;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 800;
+}
+
+.anko-chal-actions button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+</style>
+    <style>.askill-stage {
+  width: 100%;
+  max-width: 1200px;
+  height: 880px;
+  margin: 0 auto;
+  padding: 12px 0 24px;
+  position: relative;
+}
+
+.askill-node {
+  box-sizing: border-box;
+  color: #ffe7cf;
+  background: #2f2016;
+  border: 3px solid #5e3b20;
+  border-radius: 12px;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 260px;
+  min-height: 140px;
+  padding: 16px;
+  display: flex;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  position: absolute !important;
+}
+
+.askill-node.big-node {
+  min-height: 170px;
+  padding: 12px;
+}
+
+.askill-node .ttl {
+  color: #ffe7cf;
+  margin-bottom: 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.askill-node .desc {
+  color: #f1e5d6;
+  opacity: .95;
+  flex-grow: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.askill-node .ap-badge {
+  color: #ffe7cf;
+  background: #3a2a20;
+  border-radius: 50%;
+  justify-content: center;
+  align-self: flex-end;
+  align-items: center;
+  width: 52px;
+  height: 52px;
+  font-size: 13px;
+  display: flex;
+  box-shadow: inset 0 0 0 2px #ffdcb426;
+}
+
+.askill-wires {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.askill-wire {
+  fill: none;
+  stroke: #6e4a33;
+  stroke-width: 3px;
+  opacity: .9;
+  filter: drop-shadow(0 0 2px #00000040);
+}
+
+.askill-wire.arrow {
+  fill: #6e4a33;
+  stroke: none;
+}
+</style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- 左タブ（transformの外） -->
+        <nav class="tabs" aria-label="Main Tabs">
+            <button class="tab-btn active" id="tab-zunda" data-target="view-zunda">ずんだもん</button>
+            <button class="tab-btn" id="tab-anko" data-target="view-anko" style="display: none">あんこもん</button>
+            <button class="tab-btn" id="tab-metan" data-target="view-metan" style="display: none">四国めたん</button>
+            <button class="tab-btn" id="tab-tsumugi" data-target="view-tsumugi" style="display: none">春日部つむぎ</button>
+            <button class="tab-btn" id="tab-tohoku" data-target="view-tohoku" style="display: none">東北姉妹</button>
+            <button class="tab-btn" id="tab-auto" data-target="view-auto" style="display: none">自動化</button>
+            <button class="tab-btn" id="tab-settings" data-target="view-settings">設定</button>
+        </nav>
+
+        <div class="app-inner">
+            <div class="app-scale">
+                <div class="app">
+                    <header>
+                        <div class="title">
+                            <div class="logo"></div>
+                            <h1>ZundaDimensions <span class="pill">v0.10</span></h1>
+                        </div>
+                        <div id="saveStatus" class="pill" style="opacity: .8">保存済み</div>
+                    </header>
+
+                    <div class="shell">
+
+                        <!-- 中央ビュー -->
+                        <div>
+                            <!-- ずんだビュー（中にサブタブ） -->
+                            <div id="view-zunda" class="view active" role="region" aria-label="Zunda Content">
+
+                                <!-- サブタブ -->
+                                <div class="subtabs">
+                                    <button class="subtab-btn active" id="subtab-zd" data-target="z-sub-zd">ずんだディメンション</button>
+                                    <button class="subtab-btn disabled" id="subtab-eda" data-target="z-sub-eda">???</button>
+                                </div>
+
+                                <!-- ▼▼ ZUNDA サブビュー ▼▼ -->
+                                <div id="z-sub-zd" class="z-subview active">
+                                    <!-- アンコニティ バー（しきい値到達で表示） -->
+                                    <div id="anconityBar">
+                                        <button id="doAnconity" class="anko-btn">🍡 アンコニティ</button>
+                                    </div>
+                                    <section class="panel readout">
+                                        <div class="left">
+                                            <div class="zunda-badge"></div>
+                                            <div>
+                                                <div class="z-amount" id="zunda">0</div>
+                                                <div class="z-sub">ZPS: <span class="num" id="pps">0</span> / 経過: <span class="num" id="elapsed">0.0s</span></div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <div class="panel-row">
+                                        <!-- Boost -->
+                                        <section id="boostPanel" class="panel" style="display: none">
+                                            <div style="align-items: center; gap: 8px; display: flex">
+                                                <p class="boost-title" style="margin: 0">💚 ずんだブースト</p>
+                                                <div class="tip-wrap" aria-hidden="true" style="margin-left: auto">
+                                                    <div class="tip-btn">?</div>
+                                                    <div class="tip-box">
+                                                        <div style="margin-bottom: 6px; font-weight: 700">ずんだブーストの説明</div>
+                                                        <ul style="margin: 0; padding-left: 18px">
+                                                            <li>ずんだが <code>1e10</code> 以上で解禁</li>
+                                                            <li>購入毎に<strong>全ディメンション効力 +8.25%</strong>（乗算）</li>
+                                                            <li>コストは <strong>10</strong> から開始、購入毎に <strong>×10</strong></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="boost-left">
+                                                <span class="pill">所持ブースト: <span id="boostCount">0</span></span>
+                                                <span class="pill">効力倍率: <span id="boostMult">1.00×</span></span>
+                                                <button id="buyBoost" class="buy slim" disabled="">解禁条件: 1e10 ずんだ</button>
+                                                <button id="buyBoostMax" class="buy slim" disabled="">最大購入</button>
+                                            </div>
+                                        </section>
+
+                                        <!-- 全て最大購入 -->
+                                        <section id="allMaxPanel" class="panel" style="justify-content: center; align-items: center; padding: 12px; display: none">
+                                            <button id="buyAllMax" class="buy slim" style="min-width: 180px">全て最大購入</button>
+                                        </section>
+                                    </div>
+
+                                    <!-- Dimensions -->
+                                    <section class="panel producers" id="producers"></section>
+
+                                    <!-- Ascension + Prestige -->
+                                    <div class="meta-panels">
+                                        <!-- Ascension -->
+                                        <section id="ascPanel" class="panel" style="display: none">
+                                            <div style="align-items: center; gap: 8px; display: flex">
+                                                <div style="font-weight: 800">🌿 ずんだアセンション</div>
+                                                <div class="tip-wrap" aria-hidden="true" style="margin-left: auto">
+                                                    <div class="tip-btn">?</div>
+                                                    <div class="tip-box">
+                                                        <div style="margin-bottom: 6px; font-weight: 700">ずんだアセンションの説明</div>
+                                                        <ul style="margin: 0; padding-left: 18px">
+                                                            <li>ずんだが <code>1e16</code> 以上で解禁</li>
+                                                            <li>全ずんだディメンションを強化</li>
+                                                            <li>実行で ずんだ/ディメンション/ブースト をリセット</li>
+                                                            <li>強化：<code>倍率 = 4^(1+(log10(到達ずんだ)-16)/16)</code></li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style="flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; display: flex">
+                                                <span class="pill">現在のアセンション倍率: <span class="num" id="ascNow">1.00×</span></span>
+                                                <button id="doAscend" class="buy" disabled="" style="min-width: 260px">解禁条件: 1e16 ずんだ</button>
+                                            </div>
+                                        </section>
+
+                                        <!-- Prestige -->
+                                        <style>.prestige-grid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+  display: grid;
+}
+
+.prestige-btn {
+  text-align: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 126px;
+  padding: 14px 12px;
+  display: flex;
+}
+
+.prestige-btn .b1 {
+  font-weight: 800;
+}
+
+.prestige-btn .b2 {
+  opacity: .9;
+}
+
+.prestige-btn .b3 {
+  opacity: .95;
+  font-variant-numeric: tabular-nums;
+}
+</style>
+                                        <section id="prestigePanel" class="panel" style="display: none">
+                                            <div style="align-items: center; gap: 8px; display: flex">
+                                                <div style="font-weight: 800">💎 ずんだプレステージ</div>
+                                                <div class="tip-wrap" aria-hidden="true" style="margin-left: auto">
+                                                    <div class="tip-btn">?</div>
+                                                    <div class="tip-box">
+                                                        <div style="margin-bottom: 6px; font-weight: 700">ずんだプレステージの説明</div>
+                                                        <ul style="margin: 0; padding-left: 18px">
+                                                            <li>ずんだが <code>1e40</code> 以上で解禁</li>
+                                                            <li>ずんだ/ディメ/ブースト/アセンション をリセット</li>
+                                                            <li>スピード：ZPS に <code>3^Lv</code> を乗算</li>
+                                                            <li>パワー：アセンション倍率 → <code>(1+Lv*0.1)*基礎倍率^log10(10+Lv)</code></li>
+                                                            <li>コスト：ディメンション購入コスト緩和</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="prestige-grid">
+                                                <button id="doPrestigeSpeed" class="buy btn-speed prestige-btn" disabled="">
+                                                    <div class="b1">ZPSを強化！</div><div class="b2">スピードプレステージ</div><div class="b3" id="spdLabel">Lv0 → Lv0</div>
+                                                </button>
+                                                <button id="doPrestigePower" class="buy btn-power prestige-btn" disabled="">
+                                                    <div class="b1">アセンションを強化！</div><div class="b2">パワープレステージ</div><div class="b3" id="powLabel">Lv0 → Lv0</div>
+                                                </button>
+                                                <button id="doPrestigeCost" class="buy btn-cost prestige-btn" disabled="">
+                                                    <div class="b1">コスト上昇を少し軽減！</div><div class="b2">コストプレステージ</div><div class="b3" id="cstLabel">Lv0 → Lv0</div>
+                                                </button>
+                                            </div>
+                                        </section>
+                                    </div>
+                                </div>
+
+                                <!-- ▼▼ EDAMAME サブビュー（枝豆＋大豆） ▼▼ -->
+                                <div id="z-sub-eda" class="z-subview">
+                                    <!-- 枝豆 -->
+                                    <section class="panel">
+                                        <!-- 右上ツールチップ -->
+                                        <div class="tip-wrap" aria-hidden="true" style="position: absolute; top: 12px; right: 12px">
+                                            <div class="tip-btn">?</div>
+                                            <div class="tip-box">
+                                                <div style="margin-bottom: 6px; font-weight: 700">枝豆（Edamame）について</div>
+                                                <ul style="margin: 0; padding-left: 18px">
+                                                    <li>ずんだディメンションを購入するたびに1個増加します。</li>
+                                                    <li>枝豆で<strong>ブースト購入</strong>（ずんだブーストを+1）や<strong>指数強化</strong>（ZPS指数を+0.01/回）を行えます。</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <div class="resource-header">
+                                            <div class="res-name"><div style="background: #3bd274; border-radius: 50%; width: 12px; height: 12px"></div>枝豆（Edamame）</div>
+                                            <div class="res-amount" id="edaAmount">0</div>
+                                            <div class="res-sub">指数加算 +<span id="edaExpAdd">0.00</span> / ブースト保有 <span id="boostCount2">0</span></div>
+                                        </div>
+
+                                        <!-- ブースト購入 -->
+                                        <div class="panel-row" style="margin-top: 10px">
+                                            <div class="panel" style="background: var(--card)">
+                                                <div class="name">ブースト購入（+1個）</div>
+                                                <div class="muted">枝豆を消費してずんだブーストを追加します。</div>
+                                            </div>
+                                            <div class="panel">
+                                                <div class="buy-row">
+                                                    <button id="edaBuyBoost" class="buy">購入<br><span id="edaBoostCost">-</span></button>
+                                                    <button id="edaBuyBoostMax" class="buy">最大購入</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 指数強化 -->
+                                        <div class="panel-row" style="margin-top: 10px">
+                                            <div class="panel" style="background: var(--card)">
+                                                <div class="name">指数強化（ZPS指数 +0.01/回）</div>
+                                                <div class="muted">ZPS = 基礎ZPS<sup>1 + 0.01×購入数</sup>。</div>
+                                            </div>
+                                            <div class="panel">
+                                                <div class="buy-row">
+                                                    <button id="edaBuyExp" class="buy">購入<br><span id="edaExpCost">-</span></button>
+                                                    <button id="edaBuyExpMax" class="buy">最大購入</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <!-- 大豆 -->
+                                    <section class="panel" style="margin-top: 12px">
+                                        <!-- 右上ツールチップ -->
+                                        <div class="tip-wrap" aria-hidden="true" style="position: absolute; top: 12px; right: 12px">
+                                            <div class="tip-btn">?</div>
+                                            <div class="tip-box">
+                                                <div style="margin-bottom: 6px; font-weight: 700">大豆（Soy）について</div>
+                                                <ul style="margin: 0; padding-left: 18px">
+                                                    <li><strong>SoyPS</strong> は「1秒あたりの大豆獲得量」。ずんだディメンション8の購入数に応じて増加し、80個のとき 1/sec になるようにチューニングされています。</li>
+                                                    <li><strong>ブースト強化</strong>：ずんだブースト1個あたりの倍率を底上げ（逓減・ソフトキャップあり）。</li>
+                                                    <li><strong>ZD8強化</strong>：ずんだディメンション8の生成レートに乗算（×3/回）。</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <div class="resource-header">
+                                            <div class="res-name"><div style="background: #c97b3d; border-radius: 50%; width: 12px; height: 12px"></div>大豆（Soy）</div>
+                                            <div class="res-amount" id="soyAmount">0</div>
+                                            <div class="res-sub">SoyPS <span id="soyps">0</span> / ZD8強化倍率 <span id="zd8Mult">×1</span></div>
+                                        </div>
+
+                                        <!-- ブースト強化 -->
+                                        <div class="panel-row" style="margin-top: 10px">
+                                            <div class="panel" style="background: var(--card)">
+                                                <div class="name">ブースト強化（1個あたり倍率を底上げ）</div>
+                                                <div class="muted">現在倍率/個: <span id="boostPerItemNow">×1.0825</span> → 強化でさらに ×1.01<sup>Lv</sup>。</div>
+                                            </div>
+                                            <div class="panel">
+                                                <div class="buy-row">
+                                                    <button id="soyBuyBoostUp" class="buy">購入<br><span id="soyBoostUpCost">-</span></button>
+                                                    <button id="soyBuyBoostUpMax" class="buy">最大購入</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- ZD8強化 -->
+                                        <div class="panel-row" style="margin-top: 10px">
+                                            <div class="panel" style="background: var(--card)">
+                                                <div class="name">ずんだディメンション8強化（×3/回）</div>
+                                                <div class="muted">ずんだディメンション8の生成レートに乗算されます。</div>
+                                            </div>
+                                            <div class="panel">
+                                                <div class="buy-row">
+                                                    <button id="soyBuyZd8" class="buy">購入<br><span id="soyZd8Cost">-</span></button>
+                                                    <button id="soyBuyZd8Max" class="buy">最大購入</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                </div>
+                            </div>
+
+                            <!-- あんこビュー -->
+                            <section id="view-anko" class="view panel theme-anko">
+                                <!-- サブタブ（常に最上段） -->
+                                <div class="anko-subtabs">
+                                    <button class="anko-subtab-btn active" data-target="anko-sub-dims">あんこディメンション</button>
+                                    <button class="anko-subtab-btn" data-target="anko-sub-skills">あんこスキル</button>
+                                    <button class="anko-subtab-btn" data-target="anko-sub-chals">あんこチャレンジ</button>
+                                    <button class="anko-subtab-btn" data-target="anko-sub-marathon">???</button>
+                                </div>
+
+                                <!-- APの大きい常時表示（サブタブと内容の間） -->
+                                <section class="panel anko-readout">
+                                    <div class="anko-readout-left">
+                                        <div class="anko-ap-label">Anko Points</div>
+                                        <div class="anko-ap-amount" id="apAmount">0</div>
+                                        <div class="anko-ap-sub">アンコニティで獲得。全あんこ要素で共通に使用</div>
+                                    </div>
+                                </section>
+
+                                <!-- 各サブタブ内容（ここだけ切り替え） -->
+                                <div id="anko-sub-dims" class="anko-subview active">
+                                    <div class="muted" style="margin-bottom: 8px">AnkoDimension1〜8（アセンション/プレステージなし）</div>
+                                    <div id="ankoDimsList" class="anko-dim-list"></div>
+                                </div>
+
+                                <div id="anko-sub-skills" class="anko-subview">
+                                    <div class="muted" style="margin-bottom: 8px">APを消費するスキルツリー。縦に伸び、分岐あり。</div>
+
+                                    <div id="askill-stage" class="askill-stage">
+                                        <div id="askill-canvas" class="askill-canvas">
+                                            <svg id="askill-wires" class="askill-wires" aria-hidden="true"></svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="anko-sub-chals" class="anko-subview">
+                                    <div class="muted" style="margin-bottom: 8px">チャレンジに挑戦して報酬を手に入れよう!</div>
+                                    <div id="ankoChalGrid" class="anko-chal-grid"></div>
+                                </div>
+                            </section>
+
+                            <!-- 自動化ビュー -->
+                            <section id="view-auto" class="view panel">
+                                <div class="auto-grid">
+                                    <!-- メイン（ZD / ブースト / アセン / プレステ） -->
+                                    <section class="auto-card auto-card-main full" id="autoCard-main">
+                                        <!-- ★ヘッダー用：ここは JS で触らない -->
+                                        <div style="align-items: center; gap: 8px; display: flex" id="autoHeader">
+                                            <div style="font-weight: 800">🤖 自動化</div>
+                                            <div style="align-items: center; gap: 8px; margin-left: auto; display: flex">
+                                                <!-- ツールチップ -->
+                                                <div class="tip-wrap" aria-hidden="true">
+                                                    <div class="tip-btn">?</div>
+                                                    <div class="tip-box">
+                                                        <div style="margin-bottom: 6px; font-weight: 700">あなたの代わりに購入ボタンを押してくれます。</div>
+                                                        <ul style="margin: 0; padding-left: 18px">
+                                                            <li>解禁後、<strong>毎フレーム</strong>対象の「最大購入」を実行します。</li>
+                                                            <li>未解禁のものは自動化できません（灰色表示）。</li>
+                                                            <li>「すべてオン/オフ」で一括切替できます（解禁済みのみ対象）。</li>
+                                                            <li>（低速）表記のものは8秒ごとに実行されます。</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 一括トグルボタン -->
+                                                <button id="autoAllOff" class="auto-mini">すべてオフ</button>
+                                                <button id="autoAllOn" class="auto-mini">すべてオン</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- ★ここに ZD/BOOST/ASC/PREST の行を全部入れる -->
+                                        <div id="autoRows" style="gap: 8px; margin-top: 12px; display: grid"></div>
+                                    </section>
+
+                                    <!-- 枝豆 / 大豆 自動化専用カード -->
+                                    <section class="auto-card auto-card-edaSoy half" id="autoCard-edaSoy">
+                                        <h3 class="auto-card-title">枝豆 / 大豆 自動化</h3>
+                                        <div id="autoList-edaSoy"></div>
+                                    </section>
+                                </div>
+                            </section>
+
+                            <!-- 設定ビュー -->
+                            <div id="view-settings" class="view" role="region" aria-label="Settings">
+                                <section class="panel">
+                                    <h2 style="margin: 0 0 10px; font-size: 18px">⚙️ 設定</h2>
+                                    <p class="muted" style="margin-top: 0">セーブデータの管理</p>
+                                    <div style="flex-wrap: wrap; gap: 8px; display: flex">
+                                        <button id="export">エクスポート</button>
+                                        <button id="import">インポート</button>
+                                        <button id="hardReset" class="danger">完全リセット</button>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 右：キャラ表示用エリア -->
+        <aside class="char-slot" aria-label="Character">
+            <div class="char-stage">
+                <div class="bubble" id="char-bubble" hidden="">
+                    <img class="bubble-img" src="/bubble.e556d030.png" alt="">
+                    <div class="bubble-text" id="char-bubble-text"></div>
+                    <div class="bubble-next" id="bubble-next" aria-hidden="true">▼</div>
+                </div>
+
+                <div id="char-avatar">
+                    <img id="char-avatar-img">
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/break_infinity.js"></script>
+
+    <script type="module" src="/shiori0404.github.io.36960861.js"></script>
+
+
+
+</body></html>

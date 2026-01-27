@@ -1,4 +1,4 @@
-import Decimal from "break_infinity.js";
+import Decimal from "../../node_modules/break_infinity.js";
 
 export { Decimal };
 
