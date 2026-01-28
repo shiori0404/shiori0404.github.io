@@ -1120,8 +1120,8 @@ function ascNewMultFrom(z) { // z: Decimal
 }
 
 /* ---- 枝豆／大豆（基礎はNumberのまま。必要ならDecimal化拡張できる） ---- */
-const EDA_BOOST_BASE = 50, EDA_BOOST_STEP = 1.35;
-const EDA_EXP_BASE = 1000, EDA_EXP_STEP = 2.25, EDA_EXP_PER = 0.01;
+const EDA_BOOST_BASE = 10, EDA_BOOST_STEP = 1.5;
+const EDA_EXP_BASE = 2000, EDA_EXP_STEP = 2.25, EDA_EXP_PER = 0.01;
 function edaBoostCost() { return Math.ceil(EDA_BOOST_BASE * getEffects().edaUpgradeCostMul * Math.pow(Math.max(EDA_BOOST_STEP * getEffects().edaUpgradeCostMul, 1.125), state.eda.boostBought || 0)); }
 function edaBoostTotal(n) { if (n <= 0) return 0; const a = EDA_BOOST_BASE * getEffects().edaUpgradeCostMul * Math.pow(Math.max(EDA_BOOST_STEP * getEffects().edaUpgradeCostMul, 1.125), state.eda.boostBought || 0), r = Math.max(EDA_BOOST_STEP * getEffects().edaUpgradeCostMul, 1.125); return Math.ceil(r === 1 ? a * n : a * (Math.pow(r, n) - 1) / (r - 1)); }
 function edaExpCost() { return Math.ceil(EDA_EXP_BASE * getEffects().edaUpgradeCostMul * Math.pow(EDA_EXP_STEP * getEffects().edaUpgradeCostMul, state.eda.expBought || 0)); }
@@ -1146,7 +1146,7 @@ function calcSoyPS() {
     const sps = Math.pow(core, beta) + getEffects().soyGetAdd;
     return Number.isFinite(sps) && sps > 0 ? sps : 0;
 }
-const SOY_BOOSTUP_BASE = 200, SOY_BOOSTUP_STEP = 1.75;
+const SOY_BOOSTUP_BASE = 200, SOY_BOOSTUP_STEP = 2;
 const SOY_ZD8_BASE = 150, SOY_ZD8_STEP = 1.5;
 function soyBoostUpCost() { return Math.ceil(SOY_BOOSTUP_BASE * getEffects().soyUpgradeCostMul * Math.pow(SOY_BOOSTUP_STEP * getEffects().soyUpgradeCostMul, state.soy.boostUpLv || 0)); }
 function soyBoostUpTotal(n) { if (n <= 0) return 0; const a = SOY_BOOSTUP_BASE * getEffects().soyUpgradeCostMul * Math.pow(SOY_BOOSTUP_STEP * getEffects().soyUpgradeCostMul, state.soy.boostUpLv || 0), r = SOY_BOOSTUP_STEP * getEffects().soyUpgradeCostMul; return Math.ceil(r === 1 ? a * n : a * (Math.pow(r, n) - 1) / (r - 1)); }
@@ -2634,8 +2634,12 @@ function tickStep(dt, { skipUI }) {
     // soy（NumberのままでOK）
     {
         let sps = calcSoyPS();
-        if (!Number.isFinite(sps) || sps < 0) sps = 0;
-        state.soy.amount += sps * dt;
+        if (edaUnlocked) {
+            if (!Number.isFinite(sps) || sps < 0) sps = 0;
+            state.soy.amount += sps * dt;
+        } else {
+            state.soy.amount = 0;
+        }
     }
 
     // ANKO
