@@ -345,7 +345,7 @@ const state = {
     eda: { amount: 0, boostBought: 0, expBought: 0 },
     soy: { amount: 0, boostUpLv: 0, zd8Lv: 0 },
 
-    ap: 0,                 // アンコポイント
+    ap: D(0),                 // アンコポイント
     anconityClears: 0,     // アンコニティ達成回数
     ankoTabUnlocked: false,// あんこタブ解禁フラグ
     anconityReady: false,  // しきい値到達（停止中）
@@ -601,7 +601,7 @@ function load() {
                 challenges: Array.from({ length: 13 }, () => ({ cleared: false, bestTime: null }))
             };
         }
-        state.ap = Number(p.ap) || 0;
+        state.ap = p.ap || D(0);
         state.anconityClears = p.anconityClears || 0;
         state.ankoTabUnlocked = !!p.ankoTabUnlocked;
         state.anconityReady = !!p.anconityReady;
@@ -955,7 +955,13 @@ const prestigeSystem = createPrestigeSystem({ toNum, log10Safe });
 const prestigeRawLevelFromZ = prestigeSystem.prestigeRawLevelFromZ;
 
 // スピードプレステージによる倍率取得
-function getPrestigeSpeedMult() { return Math.max(27,Math.pow(3, state.prestige.speed || 0)); }
+function getPrestigeSpeedMult() {
+    if (state.prestige.speed > 0) {
+        return Math.max(243, Math.pow(3, state.prestige.speed || 0));
+    } else {
+        return 1;
+    }
+}
 function getPrestigeCostBase() { return 1.3; }
 // パワープレステージによる係数・指数取得
 function getPowerMult() {
