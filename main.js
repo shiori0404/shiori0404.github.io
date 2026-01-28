@@ -64,7 +64,10 @@ import { createUpdateUI } from "./src/ui/updateUI.js";
 import { calcTickMults } from "./src/systems/mults.js";
 import { tickZunda } from "./src/systems/zundaProduction.js";
 
-// プレステージ
+// ずんだアセンション
+import { createAscensionSystem } from "./src/systems/ascension.js";
+
+// ずんだプレステージ
 import { createPrestigeSystem, PRESTIGE_REF, PRESTIGE_P, PRESTIGE_S } from "./src/systems/prestigeSystem.js";
 
 // あんこディメンション
@@ -940,6 +943,13 @@ for (let i = 2; i <= 8; i++) {
     baseCosts[i] = prev * mult;
 }
 
+/* Ascension計算 */
+const ascSys = createAscensionSystem({
+    getState: () => state,
+    ASC_UNLOCK,
+    D,
+});
+
 /* Prestige計算 */
 const prestigeSystem = createPrestigeSystem({ toNum, log10Safe });
 const prestigeRawLevelFromZ = prestigeSystem.prestigeRawLevelFromZ;
@@ -1344,7 +1354,7 @@ function getAutoAscMul() {
 function maybeAutoAscend() {
     if (!state.auto?.unlocked?.asc) return false;
     if (!state.auto?.enabled?.asc) return false;
-    if (!boostAscUI.canAscend()) return false;
+    if (!ascSys.canAscend()) return false;
 
     const mul = getAutoAscMul();           // 入力欄の指定倍率（Decimal）
     const m = mul.lt(1) ? D(1) : mul;  // 念のため1未満は1に丸め
@@ -1490,7 +1500,7 @@ function canDoPrestige() {
 
 // アセンション実行
 function doAscend() {
-    if (!boostAscUI.canAscend()) { alert("アセンションの解禁条件を満たしていません。（必要：ずんだ ≥ 1e16）"); return; }
+    if (!ascSys.canAscend()) { alert("アセンションの解禁条件を満たしていません。（必要：ずんだ ≥ 1e16）"); return; }
     const nextMult = ascNewMultFrom(state.zunda);
     if (nextMult <= state.ascensionMult) { alert("現在のアセンション倍率以下のため、実行できません。"); return; }
     state.ascensionMult = nextMult;
@@ -2209,6 +2219,7 @@ const boostAscUI = createBoostAscUI({
     boostTotal, getBoostPerItem,
     zundaBoostCost, canUseBoost, maxBoostAffordableZunda,
     ascNewMultFrom,
+    canAscend: ascSys.canAscend,
 });
 
 // プレステージのUI更新

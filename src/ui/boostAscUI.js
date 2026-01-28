@@ -6,12 +6,8 @@ export function createBoostAscUI(deps) {
         boostTotal, getBoostPerItem,
         zundaBoostCost, canUseBoost, maxBoostAffordableZunda,
         ascNewMultFrom,
+        canAscend,
     } = deps;
-
-    function canAscend() {
-        const state = getState();
-        return state.zunda.gte(ASC_UNLOCK);
-    }
 
     function refreshBoostUI() {
         const state = getState();
