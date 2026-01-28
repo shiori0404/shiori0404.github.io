@@ -955,7 +955,7 @@ const prestigeSystem = createPrestigeSystem({ toNum, log10Safe });
 const prestigeRawLevelFromZ = prestigeSystem.prestigeRawLevelFromZ;
 
 // スピードプレステージによる倍率取得
-function getPrestigeSpeedMult() { return Math.pow(3, state.prestige.speed || 0); }
+function getPrestigeSpeedMult() { return Math.max(27,Math.pow(3, state.prestige.speed || 0)); }
 function getPrestigeCostBase() { return 1.3; }
 // パワープレステージによる係数・指数取得
 function getPowerMult() {
@@ -1120,7 +1120,7 @@ function ascNewMultFrom(z) { // z: Decimal
 }
 
 /* ---- 枝豆／大豆（基礎はNumberのまま。必要ならDecimal化拡張できる） ---- */
-const EDA_BOOST_BASE = 10, EDA_BOOST_STEP = 1.25;
+const EDA_BOOST_BASE = 50, EDA_BOOST_STEP = 1.35;
 const EDA_EXP_BASE = 1000, EDA_EXP_STEP = 2.25, EDA_EXP_PER = 0.01;
 function edaBoostCost() { return Math.ceil(EDA_BOOST_BASE * getEffects().edaUpgradeCostMul * Math.pow(Math.max(EDA_BOOST_STEP * getEffects().edaUpgradeCostMul, 1.125), state.eda.boostBought || 0)); }
 function edaBoostTotal(n) { if (n <= 0) return 0; const a = EDA_BOOST_BASE * getEffects().edaUpgradeCostMul * Math.pow(Math.max(EDA_BOOST_STEP * getEffects().edaUpgradeCostMul, 1.125), state.eda.boostBought || 0), r = Math.max(EDA_BOOST_STEP * getEffects().edaUpgradeCostMul, 1.125); return Math.ceil(r === 1 ? a * n : a * (Math.pow(r, n) - 1) / (r - 1)); }
