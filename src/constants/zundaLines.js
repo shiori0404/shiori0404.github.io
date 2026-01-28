@@ -147,6 +147,7 @@ export const ZUNDA_LINES_BY_PROGRESS = {
 
     29: [
         { text: "あ、あれ？無事なのだ？", sprite: "shirome" },
+        { text: "（現在実装されているのはここまでなのだ。あんこもんが登場するアンコニティステージは今後追加予定なのだ）", sprite: "shirome" },
     ],
 
     30: [],

@@ -1344,7 +1344,7 @@ function getAutoAscMul() {
 function maybeAutoAscend() {
     if (!state.auto?.unlocked?.asc) return false;
     if (!state.auto?.enabled?.asc) return false;
-    if (!canAscend()) return false;
+    if (!boostAscUI.canAscend()) return false;
 
     const mul = getAutoAscMul();           // 入力欄の指定倍率（Decimal）
     const m = mul.lt(1) ? D(1) : mul;  // 念のため1未満は1に丸め
@@ -1490,7 +1490,7 @@ function canDoPrestige() {
 
 // アセンション実行
 function doAscend() {
-    if (!canAscend()) { alert("アセンションの解禁条件を満たしていません。（必要：ずんだ ≥ 1e16）"); return; }
+    if (!boostAscUI.canAscend()) { alert("アセンションの解禁条件を満たしていません。（必要：ずんだ ≥ 1e16）"); return; }
     const nextMult = ascNewMultFrom(state.zunda);
     if (nextMult <= state.ascensionMult) { alert("現在のアセンション倍率以下のため、実行できません。"); return; }
     state.ascensionMult = nextMult;
