@@ -2706,6 +2706,9 @@ function bootstrap() {
     refreshCostMultipliers();
     setEdaButtonState();
     recomputeAllSkillEffects();
+
+    askill.init();
+
     applyOfflineFromLastActive({ showToast: true });
     ankoChalUI.refreshAnkoChallengeRunningUI();
     updateUI();
